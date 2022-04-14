@@ -64,18 +64,24 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
         # Loading the data from the yaml file
         data = yaml.safe_load(file)
 
-        # Recording the total number of varints
-        all_taxid_assembly_accession = data['all']
-        filtered_taxid_assembly_accession = data['filtered']
+        # Recording the total number of variants
+        temp = "all_" + str(taxid) + "_" + assembly_accession
+        locals[temp] = data['all']
+
+        temp = "filtered_" + str(taxid) + "_" + assembly_accession
+        locals[temp] = data['filtered']
 
         # Recording the remapping statistics for flanking region of length 50
-        flank_50_taxid_assembly_accession = data['Flank_50']
+        temp = "flank_50" + str(taxid) + "_" + assembly_accession
+        locals[temp] = data['Flank_50']
 
         # Recording the remapping statistics for flanking region of length 2000
-        flank_2000_taxid_assembly_accession = data['Flank_2000']
+        temp = "flank_2000" + str(taxid) + "_" + assembly_accession
+        locals[temp] = data['Flank_2000']
 
         # Recording the remapping statistics for flanking region of length 50000
-        flank_50000_taxid_assembly_accession = data['Flank_50000']
+        temp = "flank_50000" + str(taxid) + "_" + assembly_accession
+        locals[temp] = data['Flank_50000']
 
         # Collecting failure statistics for flanking region of length 50
         for k, v in flank_50_taxid_assembly_accession.items():
