@@ -48,16 +48,16 @@ def gather_counts_per_tax_per_assembly(taxid, assembly_accession):
             locals()[temp] = v
 
         # Collecting failure statistics for flanking region of length 2000
-            for k, v in flank_2000_taxid_assembly_accession.items():
-                k = k.replace(" ", "")
-                temp = "flank_2000_" + k + "_taxid_assembly_accession"
-                locals()[temp] = v
+        for k, v in flank_2000_taxid_assembly_accession.items():
+            k = k.replace(" ", "")
+            temp = "flank_2000_" + k + "_taxid_assembly_accession"
+            locals()[temp] = v
 
         # Collecting failure statistics for flanking region of length 50000
-            for k, v in flank_50000_taxid_assembly_accession.items():
-                k = k.replace(" ", "")
-                temp = "flank_50_" + k + "_taxid_assembly_accession"
-                locals()[temp] = v
+        for k, v in flank_50000_taxid_assembly_accession.items():
+            k = k.replace(" ", "")
+            temp = "flank_50_" + k + "_taxid_assembly_accession"
+            locals()[temp] = v
 
 
 # Defining the main function --In Progress
