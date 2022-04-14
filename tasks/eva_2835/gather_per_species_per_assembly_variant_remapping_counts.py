@@ -19,8 +19,11 @@ import argparse
 # Defining the function to store the counts of the remapped variants along wih the reason for failure
 # in different rounds
 
+# In Progress
 
-def gather_counts_per_tax_per_assembly(taxid, assembly_accession):
+
+def gather_counts_per_tax_per_assembly(remapping_root_path, output_file):
+
 
     filename = assembly_accession + "_eva_remapped_counts.yml"
 
@@ -61,7 +64,7 @@ def gather_counts_per_tax_per_assembly(taxid, assembly_accession):
             locals()[temp] = v
 
 
-# Defining the main function --In Progress
+# Defining the main function
 
 def main():
 
