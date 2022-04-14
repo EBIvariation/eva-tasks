@@ -72,31 +72,31 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
         locals[temp] = data['filtered']
 
         # Recording the remapping statistics for flanking region of length 50
-        temp = "flank_50" + str(taxid) + "_" + assembly_accession
+        temp_50 = "flank_50" + str(taxid) + "_" + assembly_accession
         locals[temp] = data['Flank_50']
 
         # Recording the remapping statistics for flanking region of length 2000
-        temp = "flank_2000" + str(taxid) + "_" + assembly_accession
+        temp_2000 = "flank_2000" + str(taxid) + "_" + assembly_accession
         locals[temp] = data['Flank_2000']
 
         # Recording the remapping statistics for flanking region of length 50000
-        temp = "flank_50000" + str(taxid) + "_" + assembly_accession
+        temp_50000 = "flank_50000" + str(taxid) + "_" + assembly_accession
         locals[temp] = data['Flank_50000']
 
         # Collecting failure statistics for flanking region of length 50
-        for k, v in flank_50_taxid_assembly_accession.items():
+        for k, v in temp_50.items():
             k = k.replace(" ", "")
             temp = "flank_50_" + k + "_taxid_assembly_accession"
             locals()[temp] = v
 
         # Collecting failure statistics for flanking region of length 2000
-        for k, v in flank_2000_taxid_assembly_accession.items():
+        for k, v in temp_2000.items():
             k = k.replace(" ", "")
             temp = "flank_2000_" + k + "_taxid_assembly_accession"
             locals()[temp] = v
 
         # Collecting failure statistics for flanking region of length 50000
-        for k, v in flank_50000_taxid_assembly_accession.items():
+        for k, v in temp_50000.items():
             k = k.replace(" ", "")
             temp = "flank_50_" + k + "_taxid_assembly_accession"
             locals()[temp] = v
