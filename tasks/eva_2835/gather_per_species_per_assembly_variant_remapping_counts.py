@@ -14,6 +14,7 @@
 
 # Importing relevant packages
 import yaml
+import argparse
 
 # Defining the function to store the counts of the remapped variants along wih the reason for failure
 # in different rounds
@@ -63,7 +64,16 @@ def gather_counts_per_tax_per_assembly(taxid, assembly_accession):
 # Defining the main function --In Progress
 
 def main():
-    gather_counts_per_tax_per_assembly(9265, "GCA_000298735.2")
+
+    parser = argparse.ArgumentParser(
+        description='Collecting statistics per taxonomy per assembly for variant remapping')
+    parser.add_argument("--remapping_root_path", type=str,
+                        help="Path where the remapping directories are present", required=True)
+    parser.add_argument("--output_file", type=str,
+                        help="Path to the output .", required=True)
+
+    args = parser.parse_args()
+    gather_counts_per_tax_per_assembly(args.remapping_root_path, args.output_file)
 
 
 if __name__ == "__main__":
