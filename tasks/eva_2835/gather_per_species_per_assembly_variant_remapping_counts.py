@@ -55,7 +55,9 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
             per taxonomy
     """
 
-    filename = os.path.join(path, taxid) + "_eva_remapped_counts.yml"
+    # Setting the filename
+    filename = assembly_accession + "_eva_remapped_counts.yml"
+    filename = os.path.join(path, str(taxid), assembly_accession, "eva", filename)
 
     with open(filename, 'r') as file:
 
