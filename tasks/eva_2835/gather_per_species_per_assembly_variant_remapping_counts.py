@@ -19,7 +19,7 @@ import argparse
 import csv
 
 # Initializing the final output column
-output_columns = []
+all_columns = []
 
 # Initializing the list to store all the keys and values for all the files
 all_keys = []
@@ -40,7 +40,8 @@ def collect_taxid_assembly(remapping_root_path, output_path):
     """
 
     # Collecting the tax_ids from the input path
-    taxids = [name for name in os.listdir(remapping_root_path) if os.path.isdir(os.path.join(remapping_root_path, name))]
+    taxids = [name for name in os.listdir(remapping_root_path) if
+              os.path.isdir(os.path.join(remapping_root_path, name))]
 
     # Defining a dictionary to store the taxonomy and its corresponding assemblies
     tax_assembly = {}
@@ -51,9 +52,10 @@ def collect_taxid_assembly(remapping_root_path, output_path):
         tax_assembly[tax_id] = assembly_accession
 
     # Generating statistics for each taxonomy and each assembly
-    for k, v in tax_assembly.items():
-        for i in range(len(v)):
-            gather_counts_per_tax_per_assembly(remapping_root_path, k, i)
+    for key, value in tax_assembly.items():
+        for val in range(len(value)):
+            gather_counts_per_tax_per_assembly(remapping_root_path, key, value[val])
+
 
 # In Progress
 
@@ -68,12 +70,12 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     """
 
     # Setting the filename for the eva counts
-    filename_eva = assembly_accession + "_eva_remapped_counts.yml"
-    filename_eva = os.path.join(path, str(taxid), assembly_accession, "eva", filename_eva)
+    filename_eva = str(assembly_accession) + "_eva_remapped_counts.yml"
+    filename_eva = os.path.join(path, str(taxid), str(assembly_accession), "eva", filename_eva)
 
     # Setting the filename for the dbsnp counts
-    filename_dbsnp = assembly_accession + "_dbsnp_remapped_counts.yml"
-    filename_dbsnp = os.path.join(path, str(taxid), assembly_accession, "dbsnp", filename_dbsnp)
+    filename_dbsnp = str(assembly_accession) + "_dbsnp_remapped_counts.yml"
+    filename_dbsnp = os.path.join(path, str(taxid), str(assembly_accession), "dbsnp", filename_dbsnp)
 
     with open(filename_eva, 'r') as file:
 
@@ -128,15 +130,15 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     # Adding the values of bdsnp and eva with the common keys
     for key in keys_values_dbsnp:
         if key in keys_values:
-            keys_values[key] = keys_values[key] + keys_values_dbsnp[key]
-        else:
-            pass
+            keys_values_dbsnp[key] = keys_values_dbsnp[key] + keys_values[key]
+
+    keys_values_dbsnp = {**keys_values, **keys_values_dbsnp}
 
     # Sorting the dictionary using the keys
-    keys_values = {key: value for key, value in sorted(keys_values.items())}
+    keys_values_dbsnp = {key: value for key, value in sorted(keys_values_dbsnp.items())}
 
     # Splitting the dictionary into two lists - one for keys and one for values
-    keys, values = zip(*keys_values.items())
+    keys, values = zip(*keys_values_dbsnp.items())
     keys = list(keys)
     values = list(values)
 
@@ -149,8 +151,9 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     all_assembly.append(assembly_accession)
 
     # Updating the final output columns
-    output_columns.extend(keys)
-    output_columns = list(dict.fromkeys(output_columns))
+    global all_columns
+    all_columns.extend(keys)
+    all_columns = list(set(all_columns))
 
 # Defining the main function to accept the inputs from the user
 
