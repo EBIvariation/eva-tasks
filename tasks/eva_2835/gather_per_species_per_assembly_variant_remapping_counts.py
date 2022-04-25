@@ -1,4 +1,4 @@
-# Copyright 2022 EMBL - European Bioinformatics Institute
+#Copyright 2022 EMBL - European Bioinformatics Institute
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,20 +17,23 @@ import os
 import yaml
 import argparse
 import csv
+import xlsxwriter
+from string import ascii_uppercase
 
 # Initializing the final output column
-all_columns = []
+all_columns=[]
 
 # Initializing the list to store all the keys and values for all the files
-all_keys = []
-all_values = []
+all_keys=[]
+all_values=[]
 
 # Initializing the list to store the values of all taxonomy ids and assembly accessions
-all_tax_id =[]
-all_assembly = []
+all_tax_id=[]
+all_assembly=[]
 
 
-def collect_taxid_assembly(remapping_root_path, output_path):
+# In Progress
+def generate_output(remapping_root_path, output_path):
     """
     This function is used to store the ful list of taxonomy ids and assembly accessions
     Input: It accepts the remapping full path from the user along with the output path
@@ -51,13 +54,48 @@ def collect_taxid_assembly(remapping_root_path, output_path):
                               os.path.isdir(os.path.join(os.path.join(remapping_root_path, tax_id), name))]
         tax_assembly[tax_id] = assembly_accession
 
-    # Generating statistics for each taxonomy and each assembly
+    # Collect statistics for each taxonomy and each assembly
     for key, value in tax_assembly.items():
         for val in range(len(value)):
             gather_counts_per_tax_per_assembly(remapping_root_path, key, value[val])
 
+    # Generate output file from the statistics gathered
 
-# In Progress
+    # Initializing the excel workbook
+    workbook = xlsxwriter.Workbook(output_path + '/Gather_Stats.xlsx')
+    worksheet = workbook.add_worksheet('All counts.xlsx')
+
+    # Creating the header format to be used during writing of the results
+    header_format = workbook.add_format({
+        'bold': 1,
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'fg_color': '#D7E4BC'})
+
+    global ascii_uppercase
+
+    # Considering maximum reasons of failure to be restricted to 26*3
+    letters = ascii_uppercase[:3]
+    all_letters = ascii_uppercase
+
+    # Storing the excel cell header subscripts for excel
+    for char in letters:
+        for char2 in all_letters:
+            ascii_uppercase = ascii_uppercase + char + char2
+
+    # Displaying the first two headers
+    worksheet.write('A1', 'Taxonomy', header_format)
+    worksheet.write('B1', 'Assembly Accession', header_format)
+
+    # Displaying the other headers
+    for column in range(len(all_columns)):
+        print(column)
+        cell_name = ascii_uppercase[column + 2] + "1"
+        worksheet.write(cell_name, all_columns[column], header_format)
+
+    # Closing the workbook
+    workbook.close()
 
 
 def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
@@ -127,7 +165,7 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
         zip_iterator = zip(keys, values)
         keys_values_dbsnp = dict(zip_iterator)
 
-    # Adding the values of dbsnp and eva with the common keys
+    # Adding the values of bdsnp and eva with the common keys
     for key in keys_values_dbsnp:
         if key in keys_values:
             keys_values_dbsnp[key] = keys_values_dbsnp[key] + keys_values[key]
@@ -155,30 +193,3 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     global all_columns
     all_columns.extend(keys)
     all_columns = list(dict.fromkeys(all_columns))
-
-# Defining the main function to accept the inputs from the user
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description='Collecting statistics per taxonomy per assembly for variant remapping')
-
-    # Allowing the user to enter the full path for the taxonomy folders which contain
-    # the corresponding old assemblies which in turn contain the yaml files containing
-    # the remapped statistics
-    parser.add_argument("--remapping_root_path", type=str,
-                        help="Path where the remapping directories are present", required=True)
-
-    # Taking the output path from the user where the visualization files and output csv
-    # files are present
-    parser.add_argument("--output_file", type=str,
-                        help="Path to the output .", required=True)
-
-    args = parser.parse_args()
-
-    # Calling the primary function responsible for generating the statistics
-    collect_taxid_assembly(args.remapping_root_path, args.output_file)
-
-
-if __name__ == "__main__":
-    main()
