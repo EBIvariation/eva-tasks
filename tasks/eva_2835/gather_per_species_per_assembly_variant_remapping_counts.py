@@ -127,11 +127,12 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
         zip_iterator = zip(keys, values)
         keys_values_dbsnp = dict(zip_iterator)
 
-    # Adding the values of bdsnp and eva with the common keys
+    # Adding the values of dbsnp and eva with the common keys
     for key in keys_values_dbsnp:
         if key in keys_values:
             keys_values_dbsnp[key] = keys_values_dbsnp[key] + keys_values[key]
 
+    # Concatenating the two dictionaries
     keys_values_dbsnp = {**keys_values, **keys_values_dbsnp}
 
     # Sorting the dictionary using the keys
@@ -153,7 +154,7 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     # Updating the final output columns
     global all_columns
     all_columns.extend(keys)
-    all_columns = list(set(all_columns))
+    all_columns = list(dict.fromkeys(all_columns))
 
 # Defining the main function to accept the inputs from the user
 
