@@ -76,13 +76,14 @@ def generate_output(remapping_root_path, output_path):
     global ascii_uppercase
 
     # Considering maximum reasons of failure to be restricted to 26*3
-    letters = ascii_uppercase[:3]
-    all_letters = ascii_uppercase
+    letters = list(ascii_uppercase[:3])
+    all_letters = list(ascii_uppercase)
+    A_Z = list(ascii_uppercase)
 
     # Storing the excel cell header subscripts for excel
     for char in letters:
         for char2 in all_letters:
-            ascii_uppercase = ascii_uppercase + char + char2
+            A_Z.append(char + char2)
 
     # Displaying the first two headers
     worksheet.write('A1', 'Taxonomy', header_format)
@@ -90,8 +91,7 @@ def generate_output(remapping_root_path, output_path):
 
     # Displaying the other headers
     for column in range(len(all_columns)):
-        print(column)
-        cell_name = ascii_uppercase[column + 2] + "1"
+        cell_name = A_Z[column + 2] + "1"
         worksheet.write(cell_name, all_columns[column], header_format)
 
     # Closing the workbook
