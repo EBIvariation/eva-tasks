@@ -20,6 +20,7 @@ import csv
 import xlsxwriter
 from string import ascii_uppercase
 
+
 # Initializing the final output column
 all_columns=[]
 
@@ -71,9 +72,8 @@ def generate_output(remapping_root_path, output_path):
         'border': 1,
         'align': 'center',
         'valign': 'vcenter',
-        'fg_color': '#D7E4BC'})
-
-    global ascii_uppercase
+        'fg_color': '#D7E4BC',
+        'text_wrap': 1})
 
     # Considering maximum reasons of failure to be restricted to 26*3
     letters = list(ascii_uppercase[:3])
@@ -115,55 +115,9 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     filename_dbsnp = str(assembly_accession) + "_dbsnp_remapped_counts.yml"
     filename_dbsnp = os.path.join(path, str(taxid), str(assembly_accession), "dbsnp", filename_dbsnp)
 
-    with open(filename_eva, 'r') as file:
-
-        # Loading the data from the yaml file
-        data = yaml.safe_load(file)
-
-        # Storing the contents for a particular yaml file in a linear dictionary format for eva
-        keys = []
-        values = []
-        keys_values = {}
-
-        for key, value in data.items():
-
-            # Checking if the value is dictionary
-            if isinstance(value, dict):
-                for key2, value2 in value.items():
-                    keys.append(key + "_" + key2)
-                    values.append(value2)
-            else:
-                keys.append(key.capitalize())
-                values.append(value)
-
-        # Creating dictionary from two lists
-        zip_iterator = zip(keys, values)
-        keys_values = dict(zip_iterator)
-
-    with open(filename_dbsnp, 'r') as file:
-
-        # Loading the data from the yaml file
-        data = yaml.safe_load(file)
-
-        # Storing the contents for a particular yaml file in a linear dictionary format for dbsnp
-        keys = []
-        values = []
-        keys_values_dbsnp = {}
-
-        for key, value in data.items():
-
-            # Checking if the value is dictionary
-            if isinstance(value, dict):
-                for key2, value2 in value.items():
-                    keys.append(key + "_" + key2)
-                    values.append(value2)
-            else:
-                keys.append(key.capitalize())
-                values.append(value)
-
-        # Creating dictionary from two lists
-        zip_iterator = zip(keys, values)
-        keys_values_dbsnp = dict(zip_iterator)
+    # Calling functions for gathering stats per file from eva and dbsnp data
+    keys_values = gather_counts_per_file(filename_eva)
+    keys_values_dbsnp = gather_counts_per_file(filename_dbsnp)
 
     # Adding the values of bdsnp and eva with the common keys
     for key in keys_values_dbsnp:
@@ -193,3 +147,57 @@ def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     global all_columns
     all_columns.extend(keys)
     all_columns = list(dict.fromkeys(all_columns))
+
+
+def gather_counts_per_file(filename):
+    # Storing the contents for a particular yaml file in a linear dictionary format for eva
+    keys = []
+    values = []
+    keys_values = {}
+
+    with open(filename, 'r') as file:
+
+        # Loading the data from the yaml file
+        data = yaml.safe_load(file)
+
+        for key, value in data.items():
+
+            # Checking if the value is dictionary
+            if isinstance(value, dict):
+                for key2, value2 in value.items():
+                    keys.append(key + "_" + key2)
+                    values.append(value2)
+            else:
+                keys.append(key.capitalize())
+                values.append(value)
+
+    # Creating dictionary from two lists
+    zip_iterator = zip(keys, values)
+    keys_values = dict(zip_iterator)
+
+    return keys_values
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Collecting statistics per taxonomy per assembly for variant remapping')
+
+    # Allowing the user to enter the full path for the taxonomy folders which contain
+    # the corresponding old assemblies which in turn contain the yaml files containing
+    # the remapped statistics
+    parser.add_argument("--remapping_root_path", type=str,
+                        help="Path where the remapping directories are present", required=True)
+
+    # Taking the output path from the user where the visualization files and output csv
+    # files are present
+    parser.add_argument("--output_file", type=str,
+                        help="Path to the output .", required=True)
+
+    args = parser.parse_args()
+
+    # Calling the primary function responsible for generating the statistics
+    generate_output(args.remapping_root_path, args.output_file)
+
+
+if __name__ == "__main__":
+    main()
