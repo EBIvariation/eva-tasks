@@ -19,6 +19,7 @@ import argparse
 import csv
 import xlsxwriter
 from string import ascii_uppercase
+import pandas as pd
 
 
 # Initializing the final output column
@@ -33,14 +34,14 @@ all_tax_id=[]
 all_assembly=[]
 
 
-# In Progress
 def generate_output(remapping_root_path, output_path):
     """
     This function is used to store the ful list of taxonomy ids and assembly accessions
     Input: It accepts the remapping full path from the user along with the output path
            for storing the results for subsequent analysis
     Output: It calls gather_counts_per_tax_per_assembly() function
-           for a particular taxonomy id and a particular assembly of that taxonomy
+           for a particular taxonomy id and a particular assembly of that taxonomy and generate an spreadsheet
+           containing the statistics
     """
 
     # Collecting the tax_ids from the input path
@@ -94,15 +95,53 @@ def generate_output(remapping_root_path, output_path):
         cell_name = A_Z[column + 2] + "1"
         worksheet.write(cell_name, all_columns[column], header_format)
 
+    # Defining the cell format for the values
+    stats_fmt = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})
+    filename_fmt = workbook.add_format(
+        {'align': 'left', 'valign': 'vcenter', 'border': 1, 'font_color': 'red', 'text_wrap': 1})
+
+    # Setting the starting row for values
+    row = 1
+
+    # Populating the excel with the values per taxonomy id and per assembly
+    for r in range(len(all_tax_id)):
+        worksheet.write(row, 0, all_tax_id[row - 1], filename_fmt)
+        worksheet.write(row, 1, all_assembly[row - 1], filename_fmt)
+
+        # Setting the index list which has values for a particular iteration
+        idx = []
+
+        for key in all_keys[row - 1]:
+            position = all_columns.index(key)
+            idx.append(position)
+
+        # Populating the values for the other stats columns for a particular iteration
+        for col in range(len(all_columns)):
+            if col in idx:
+                key = all_columns[col]
+                position = all_keys[row - 1].index(key)
+                stats = all_values[row - 1][position]
+                worksheet.write(row, col + 2, stats, stats_fmt)
+
+            else:
+                worksheet.write(row, col + 2, 0, stats_fmt)
+
+        # Incrementing the row to write the next record
+        row = row + 1
+
     # Closing the workbook
     workbook.close()
+
+    # Creating pandas dataframe from the output spredsheet
+    excel_file = os.path.join(output_path, "Gather_Stats.xlsx")
+    dataframe = pd.read_excel(excel_file, sheet_name=0)
 
 
 def gather_counts_per_tax_per_assembly(path, taxid, assembly_accession):
     """
     This function is used to store the counts of the remapped variants along wih the reason for failures
     at different rounds (i.e. for different lengths of the flanking region)
-    Input: The taxonomy id and the assembly accession from collect_taxid_assembly()
+    Input: The taxonomy id and the assembly accession from generate_output()
     Output: A spreadsheet outlining all the relevant counts for each taxonomy and each assembly
             per taxonomy for both EVA and dbSNP data
     """
