@@ -162,6 +162,9 @@ def gather_counts_per_file(filename):
 
         for key, value in data.items():
 
+            if key == "Flank_50":
+                key = "Flank_050"
+
             # Checking if the value is dictionary
             if isinstance(value, dict):
                 for key2, value2 in value.items():
