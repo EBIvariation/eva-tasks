@@ -10,7 +10,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 class EVALoggingUtils {
-    static Logger getLogger(Class aClass, String fileName = "") {
+    static Logger getLogger(Class aClass, boolean suppressConsoleOutput = false, String fileName = null) {
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory()
         PatternLayoutEncoder ple = new PatternLayoutEncoder()
         ple.setPattern("%date %level [%thread] %logger{10} [%file:%line] %msg%n")
@@ -18,7 +18,7 @@ class EVALoggingUtils {
         ple.start()
         def scriptLogger = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(aClass)
 
-        if (fileName != "") {
+        if (Objects.isNull(fileName)) {
             def fileAppender = new FileAppender()
             fileAppender.setFile(fileName)
             fileAppender.setAppend(true)
@@ -28,9 +28,12 @@ class EVALoggingUtils {
             scriptLogger.addAppender(fileAppender)
             scriptLogger.addAppender(new ConsoleAppender<ILoggingEvent>())
             scriptLogger.setAdditive(false)
-        } else {
+        }
+        // For interactive use on Emacs terminal, being able to output only to files is desirable
+        // if voluminous output is expected that can likely be lost in terminal scrolling
+        // and also likely to result in out-of-memory issues
+        if (!suppressConsoleOutput) {
             def consoleAppender = new ConsoleAppender()
-            consoleAppender.setAppend(true)
             consoleAppender.setEncoder(ple)
             consoleAppender.setContext(lc)
             consoleAppender.start()

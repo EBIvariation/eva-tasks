@@ -202,26 +202,19 @@ public class EVADatabaseEnvironment {
         backup("_before_remediation")
     }
 
-    public int bulkUpsert(Class collection, List<?> recordsToInsert, String collectionName = null) {
+    public <T> int bulkInsertIgnoreDuplicates(List<T> recordsToInsert, Class<T> collectionClass, String collectionName = null) {
         if (recordsToInsert.size > 0) {
-            def recordsToInsertById = recordsToInsert.groupBy { it.getHashedMessage() }
-            def existingRecords = this.mongoTemplate.find(query(where("_id").in(recordsToInsertById.keySet())),
-                    collection).groupBy { it.getHashedMessage() }
-            def recordsInserted = this.mongoTemplate.insert(recordsToInsertById.findAll { k, v -> !existingRecords.containsKey(k) }.values().flatten(),
-                    (Objects.isNull(collectionName) ? collection : collectionName))
-        }
-        return recordsInserted.size()
-    }
-
-    public int bulkInsert(Class collection, List<?> recordsToInsert, String collectionName = null) {
-        if (recordsToInsert.size > 0) {
-            BulkOperations ops = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED,
-                    (Objects.isNull(collectionName) ? collection : collectionName))
+            BulkOperations ops
+            if (Objects.isNull(collectionName)) {
+                ops = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, collectionClass)
+            } else {
+                ops = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, collectionClass, collectionName)
+            }
             ops.insert(recordsToInsert)
             try {
                 ops.execute()
             }
-            catch(DuplicateKeyException duplicateKeyException) {
+            catch(DuplicateKeyException ignored) {
 
             }
         }

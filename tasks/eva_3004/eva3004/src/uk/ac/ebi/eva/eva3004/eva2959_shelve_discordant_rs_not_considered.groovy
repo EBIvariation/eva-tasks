@@ -1,8 +1,6 @@
 package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder
-import org.springframework.dao.DuplicateKeyException
-import org.springframework.data.mongodb.core.BulkOperations
 import org.springframework.data.mongodb.core.query.Query
 import uk.ac.ebi.eva.accession.deprecate.Application
 
@@ -38,25 +36,14 @@ def shelvedCollectionDbsnpSve = "eva2706_shelved_dbsnpsve_multi_position_rs"
 def shelvedCollectionSve = "eva2706_shelved_sve_multi_position_rs"
 def batchIndex = 0
 allRSToCheck.each{assembly, allRSIDs -> allRSIDs.collate(1000).each { rsIDs ->
-    def shelvedDbsnpSveBulkOps = prodEnv.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, dbsnpSveClass, shelvedCollectionDbsnpSve)
-    def shelvedSveBulkOps = prodEnv.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, sveClass, shelvedCollectionSve)
     def allSvesWithRS = [sveClass, dbsnpSveClass].collect{prodEnv.mongoTemplate.find(query(where("seq").is(assembly)
             .and("rs").in(rsIDs)), it)}.flatten()
     // Ensure that the RS reported with multiple positions among the SS still holds true in the current SVE collections
     def allSvesToShelve = allSvesWithRS.groupBy{it.clusteredVariantAccession}.findAll{k, v ->
         v.unique{toClusteredVariantEntity(it).hashedMessage}.size() > 1}.values().flatten()
-    def dbsnpSvesToShelve = allSvesToShelve.findAll{it.accession < 5e9}
-    def evaSvesToShelve = allSvesToShelve.findAll{it.accession >= 5e9}
-    try {
-        if (dbsnpSvesToShelve.size() > 0) {
-            shelvedDbsnpSveBulkOps.insert(dbsnpSvesToShelve)
-            shelvedDbsnpSveBulkOps.execute()
-        }
-        if (evaSvesToShelve.size() > 0) {
-            shelvedSveBulkOps.insert(evaSvesToShelve)
-            shelvedSveBulkOps.execute()
-        }
-    } catch (DuplicateKeyException ignored) {}
+
+    prodEnv.bulkInsertIgnoreDuplicates(dbsnpSveClass, allSvesToShelve.findAll{it.accession < 5e9}, shelvedCollectionDbsnpSve)
+    prodEnv.bulkInsertIgnoreDuplicates(sveClass, allSvesToShelve.findAll{it.accession >= 5e9}, shelvedCollectionSve)
 
     println("Shelved ${dbsnpSvesToShelve.size()} dbsnp SVEs in batch ${batchIndex}...")
     println("Shelved ${evaSvesToShelve.size()} EVA SVEs in batch ${batchIndex}...")
