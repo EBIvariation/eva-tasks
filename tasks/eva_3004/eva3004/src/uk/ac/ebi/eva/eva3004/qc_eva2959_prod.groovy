@@ -1,3 +1,6 @@
+// This script reports RS with locus mismatch still pending after EVA-2959 and shelves the relevant SS involved
+// Reasons for why these mismatches were not handled: https://www.ebi.ac.uk/panda/jira/browse/EVA-2959?focusedCommentId=407608&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-407608
+
 package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder

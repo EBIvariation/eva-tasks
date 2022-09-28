@@ -1,3 +1,7 @@
+// This script shelves SS clustered by RS with locus mismatch but was not considered as part of EVA-2959
+// They were not considered in EVA-2959 because they were logged for multiple positions reported in SS for the same RS
+// but NOT for RS/SS locus mismatch
+
 package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder
