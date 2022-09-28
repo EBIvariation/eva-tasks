@@ -18,7 +18,7 @@ class EVALoggingUtils {
         ple.start()
         def scriptLogger = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(aClass)
 
-        if (Objects.isNull(fileName)) {
+        if (!Objects.isNull(fileName)) {
             def fileAppender = new FileAppender()
             fileAppender.setFile(fileName)
             fileAppender.setAppend(true)
