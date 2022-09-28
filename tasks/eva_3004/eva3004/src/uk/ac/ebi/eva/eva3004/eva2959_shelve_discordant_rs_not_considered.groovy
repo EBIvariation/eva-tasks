@@ -25,7 +25,7 @@ def prodEnv = createFromSpringContext(prodPropertiesFile, Application.class)
 
 // RSs whose locus should be corrected but were not picked up for processing by EVA-2959
 // because they were logged for position mismatch in EVA-2706
-// ex: grep -n 53195563 /nfs/production/keane/eva/tasks/EVA2706/GCA_001433935.1_errors.log
+// ex: grep -n 53195563 <EVA-2706 discordant RS dir>/GCA_001433935.1_errors.log
 def allRSToCheck = ["bash", "-c",
                     "ls -1 ${discordantRSDir}/*errors.log"].execute().text.split("\n").collectEntries{
     [it.split("/").reverse()[0].split("_errors")[0],
