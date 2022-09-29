@@ -1,3 +1,7 @@
+/***
+ * This script shelves SS entries in EVA which were split from dbsnp SS which have mapping weights
+ */
+
 package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder
