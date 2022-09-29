@@ -5,6 +5,7 @@
 package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder
+import org.springframework.data.mongodb.core.query.Query
 import uk.ac.ebi.eva.accession.deprecate.Application
 import uk.ac.ebi.eva.eva3004.EVACursor
 
@@ -37,4 +38,4 @@ allSveSplitOps.each{ops -> ops.groupBy{it.inactiveObjects[0].referenceSequenceAc
     totalSvesShelved += evaSvesToShelve.size()
 }}
 // 280,602
-println("Shelved ${totalSvesShelved} EVA SS in total!")
+println(prodEnv.mongoTemplate.count(new Query(), sveClass, shelvedCollectionSve))
