@@ -42,7 +42,7 @@ class EVACursor<T> implements Iterable<T> {
             List<T> next() {
                 List<T> result = new ArrayList<>()
                 result.add(this.mongoTemplate.converter.read(this.collectionClass, this.resultIterator.next()))
-                for (i in 0..this.pageSize) {
+                for (i in 0..this.pageSize-2) {
                     if (this.resultIterator.hasNext()) {
                         result.add(this.mongoTemplate.converter.read(this.collectionClass, this.resultIterator.next()))
                     } else {
