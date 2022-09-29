@@ -41,7 +41,7 @@ class EVACursor<T> implements Iterable<T> {
             @Override
             List<T> next() {
                 List<T> result = new ArrayList<>()
-                result.add(this.resultIterator.next())
+                result.add(this.mongoTemplate.converter.read(this.collectionClass, this.resultIterator.next()))
                 for (i in 0..this.pageSize) {
                     if (this.resultIterator.hasNext()) {
                         result.add(this.mongoTemplate.converter.read(this.collectionClass, this.resultIterator.next()))
