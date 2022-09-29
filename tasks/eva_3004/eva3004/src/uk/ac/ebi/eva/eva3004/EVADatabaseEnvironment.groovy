@@ -202,8 +202,9 @@ public class EVADatabaseEnvironment {
         backup("_before_remediation")
     }
 
-    public <T> int bulkInsertIgnoreDuplicates(List<T> recordsToInsert, Class<T> collectionClass, String collectionName = null) {
-        if (recordsToInsert.size > 0) {
+    public <T> void bulkInsertIgnoreDuplicates(List<T> recordsToInsert, Class<T> collectionClass, String collectionName = null) {
+        def recordsInsertedResult = null
+        if (recordsToInsert.size() > 0) {
             BulkOperations ops
             if (Objects.isNull(collectionName)) {
                 ops = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, collectionClass)
@@ -218,7 +219,6 @@ public class EVADatabaseEnvironment {
 
             }
         }
-        return recordsInserted.size()
     }
 
     static def getClusteredVariantHash = {submittedVariant ->
