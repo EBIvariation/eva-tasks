@@ -28,8 +28,8 @@ allAssemblies.each{assembly ->
     println("Processing assembly ${assembly}...")
     def dbsnpCvesWithMapWtSet = new EVACursor(where("asm").is(assembly).and("mapWeight").exists(true),
             prodEnv.mongoTemplate, dbsnpCveClass)
-    dbsnpCvesWithMapWtSet.each{cvesInBatch ->
-        def rsIDsToLookup = cvesInBatch.collect{it.accession}.toSet()
+    dbsnpCvesWithMapWtSet.each{dbsnpCvesInBatch ->
+        def rsIDsToLookup = dbsnpCvesInBatch.collect{it.accession}.toSet()
         def svesWithMapWtRS = prodEnv.mongoTemplate.find(query(
                 where("seq").is(assembly).and("mapWeight").exists(false).and("rs").in(rsIDsToLookup)), sveClass)
         def ssIDsWithMapWtRS = svesWithMapWtRS.collect{it.accession}
