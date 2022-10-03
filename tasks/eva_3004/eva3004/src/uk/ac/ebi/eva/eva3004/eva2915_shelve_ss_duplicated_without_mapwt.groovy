@@ -7,6 +7,7 @@ package uk.ac.ebi.eva.eva3004
 import groovy.cli.picocli.CliBuilder
 import org.springframework.data.mongodb.core.query.Query
 import uk.ac.ebi.eva.accession.deprecate.Application
+import uk.ac.ebi.eva.eva3004.EVACursor
 
 import static uk.ac.ebi.eva.eva3004.EVADatabaseEnvironment.*
 import static org.springframework.data.mongodb.core.query.Criteria.where
@@ -28,7 +29,7 @@ def totalSvesShelved = 0
 allAssemblies.each{assembly ->
     println("Processing assembly ${assembly}...")
     def svesShelvedInAssembly = 0
-    def svesWithMapWtSet = new EVACursor<>(where("seq").is(assembly).and("mapWeight").exists(true), prodEnv.mongoTemplate, dbsnpSveClass)
+    def svesWithMapWtSet = new EVACursor(where("seq").is(assembly).and("mapWeight").exists(true), prodEnv.mongoTemplate, dbsnpSveClass)
     svesWithMapWtSet.each{svesInBatch ->
         def ssIDsToLookup = svesInBatch.collect{it.accession}.toSet()
         def otherSvesSharingTheSameID = prodEnv.mongoTemplate.find(query(

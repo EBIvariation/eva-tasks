@@ -37,5 +37,5 @@ allSveSplitOps.each{ops -> ops.groupBy{it.inactiveObjects[0].referenceSequenceAc
     prodEnv.bulkInsertIgnoreDuplicates(evaSvesToShelve, sveClass, shelvedCollectionSve)
     totalSvesShelved += evaSvesToShelve.size()
 }}
-// 280,602
+// 280,606
 println(prodEnv.mongoTemplate.count(new Query(), sveClass, shelvedCollectionSve))
