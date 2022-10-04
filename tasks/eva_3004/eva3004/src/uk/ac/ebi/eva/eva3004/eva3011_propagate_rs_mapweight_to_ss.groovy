@@ -6,6 +6,7 @@ package uk.ac.ebi.eva.eva3004
 
 import groovy.cli.picocli.CliBuilder
 import org.springframework.data.mongodb.core.BulkOperations
+import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import uk.ac.ebi.eva.eva3004.EVACursor
 import uk.ac.ebi.eva.accession.deprecate.Application
@@ -67,3 +68,5 @@ allAssemblies.each{assembly ->
         }
     }
 }
+//24,620,626
+println(prodEnv.mongoTemplate.count(new Query(), dbsnpCveClass, shelvedCollectionDbsnpCve))

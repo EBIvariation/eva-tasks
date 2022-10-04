@@ -42,5 +42,5 @@ allAssemblies.each{assembly ->
     println("${svesShelvedInAssembly} dbsnp SVEs in ${assembly}...")
     println("${totalSvesShelved} dbsnp SVEs shelved thus far...")
 }
-//51,394,022
+//51,395,300
 println(prodEnv.mongoTemplate.count(new Query(), sveClass, shelvedCollectionSve))
