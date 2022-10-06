@@ -64,7 +64,7 @@ allRSToCheck.each{assembly, allRSIDs -> allRSIDs.collate(1000).each { rsIDs ->
     println("Shelved ${evaSvesToShelve.size()} EVA SVEs in batch ${batchIndex}...")
     batchIndex += 1
 }}
-//478,810
+//505,169
 println(prodEnv.mongoTemplate.count(new Query(), sveClass, shelvedCollectionSve))
-//21,657,719
+//32,103,259
 println(prodEnv.mongoTemplate.count(new Query(), dbsnpSveClass, shelvedCollectionDbsnpSve))
