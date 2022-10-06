@@ -54,3 +54,15 @@ allEVA2850MergeOps.collate(1000).each {ops ->
         prodEnv.bulkInsertIgnoreDuplicates(svoeOps.findAll{it.accession >= 5e9}, svoeClass)
     }
 }
+
+/**
+ * Validation of the results from the above script
+ */
+def svoeRSAndAssembly = [dbsnpSvoeClass, svoeClass].collect{prodEnv.mongoTemplate.find(query(where("_id").regex("EVA2850_MERGED")),
+        it)}.flatten().collect{svoe -> return "" + "${svoe.inactiveObjects[0].referenceSequenceAccession}_${svoe.inactiveObjects[0].clusteredVariantAccession}"}.toSet()
+def cvoeRSAndAssembly = allEVA2850MergeOps.collect{cvoe -> return ""+ "${cvoe.inactiveObjects[0].assemblyAccession}_${cvoe.accession}"}.toSet()
+
+// Ensure following does not print anything
+cvoeRSAndAssembly.collate(1000).each{cvoeRSAndAssemblyInBatch ->
+    (cvoeRSAndAssemblyInBatch - svoeRSAndAssembly).each{println(it)}
+}
