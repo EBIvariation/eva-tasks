@@ -63,11 +63,13 @@ def shelveSSWithDiscordantRS = {String assembly, List<Long> rsIDs, String catego
         scriptLogger.error("Pending ${dbsnpSvesToShelve.size()} dbsnp SVEs in assembly ${assembly} in ${category} will be shelved!!")
         scriptLogger.error("${dbsnpSvesToShelve.collect{it.accession}}")
         prodEnv.bulkInsertIgnoreDuplicates(dbsnpSvesToShelve, dbsnpSveClass, shelvedCollectionDbsnpSve)
+        prodEnv.mongoTemplate.findAllAndRemove(query(where("_id").in(dbsnpSvesToShelve.collect{it.id})), dbsnpSveClass)
     }
     if (evaSvesToShelve.size() > 0) {
         scriptLogger.error("Pending ${evaSvesToShelve.size()} EVA SVEs in assembly ${assembly} in ${category} will be shelved!!")
         scriptLogger.error("${evaSvesToShelve.collect{it.accession}}")
         prodEnv.bulkInsertIgnoreDuplicates(evaSvesToShelve, sveClass, shelvedCollectionSve)
+        prodEnv.mongoTemplate.findAllAndRemove(query(where("_id").in(evaSvesToShelve.collect{it.id})), sveClass)
     }
     scriptLogger.info("Scanned ${rsIDs.size()} RS IDs for assembly ${assembly}...")
 }
