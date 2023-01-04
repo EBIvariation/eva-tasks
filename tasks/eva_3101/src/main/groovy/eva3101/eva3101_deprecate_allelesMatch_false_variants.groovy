@@ -21,7 +21,8 @@ import uk.ac.ebi.eva.accession.core.batch.io.SubmittedVariantDeprecationWriter
 import uk.ac.ebi.eva.accession.core.model.eva.SubmittedVariantEntity
 import uk.ac.ebi.eva.accession.deprecate.Application
 import uk.ac.ebi.eva.accession.deprecate.batch.listeners.DeprecationStepProgressListener
-import uk.ac.ebi.eva.groovy.commons.RetryableBatchingCursor
+import uk.ac.ebi.eva.accession.deprecate.parameters.InputParameters
+import uk.ac.ebi.eva.groovy.commons.RetryableCursor
 import uk.ac.ebi.eva.metrics.metric.MetricCompute
 
 import java.time.LocalDateTime
@@ -29,7 +30,7 @@ import java.time.LocalDateTime
 import static uk.ac.ebi.eva.groovy.commons.EVADatabaseEnvironment.*
 import static org.springframework.data.mongodb.core.query.Criteria.where
 
-// This script deprecates variants with allelesMatch attribute in dbsnpSVE collection and also the corresponding RS (if any)
+// This script populates the development environment with variants having allelesMatch false in dbsnpSVE collection and also the corresponding RS (if any)
 def cli = new CliBuilder()
 cli.propertiesFile(args: 1, "Properties file for accessioning", required: true)
 cli.assemblyToDeprecate(args: 1, "Assembly where variants with allelesMatch=false should be deprecated", required: true)
@@ -39,9 +40,10 @@ if (!options) {
     System.exit(1)
 }
 
-def dbEnv = createFromSpringContext(options.propertiesFile, Application.class)
+def dbEnv = createFromSpringContext(options.propertiesFile, Application.class,
+        ["parameters.assemblyAccession": options.assemblyToDeprecate])
 
-def dbEnvDeprecationWriter = new SubmittedVariantDeprecationWriter(assemblyToUse, dbEnv.mongoTemplate,
+def dbEnvDeprecationWriter = new SubmittedVariantDeprecationWriter(options.assemblyToDeprecate, dbEnv.mongoTemplate,
         dbEnv.submittedVariantAccessioningService, dbEnv.clusteredVariantAccessioningService,
         dbEnv.springApplicationContext.getBean("accessioningMonotonicInitSs", Long.class),
         dbEnv.springApplicationContext.getBean("accessioningMonotonicInitRs", Long.class),
@@ -49,32 +51,22 @@ def dbEnvDeprecationWriter = new SubmittedVariantDeprecationWriter(assemblyToUse
 def dbEnvProgressListener =
         new DeprecationStepProgressListener(dbEnvDeprecationWriter, dbEnv.springApplicationContext.getBean(MetricCompute.class))
 
+def inputParameters = dbEnv.springApplicationContext.getBean(InputParameters.class)
 def dbEnvJobRepository = dbEnv.springApplicationContext.getBean(JobRepository.class)
 def dbEnvTxnMgr = dbEnv.springApplicationContext.getBean(PlatformTransactionManager.class)
 
 def dbEnvJobBuilderFactory = new JobBuilderFactory(dbEnvJobRepository)
 def dbEnvStepBuilderFactory = new StepBuilderFactory(dbEnvJobRepository, dbEnvTxnMgr)
 
-def allelesMatchFalseVariantIterator = new RetryableBatchingCursor(where("allelesMatch").exists(true),
+def allelesMatchFalseVariantIterator = new RetryableCursor(where("seq")
+        .is(options.assemblyToDeprecate).and("allelesMatch").exists(true),
         dbEnv.mongoTemplate, dbsnpSveClass).iterator()
 def dbEnvJobSteps = dbEnvStepBuilderFactory.get("stepsForEVA3101Deprecation").chunk(
-        new SimpleCompletionPolicy(1000)).reader(
+        new SimpleCompletionPolicy(inputParameters.chunkSize)).reader(
         new ItemStreamReader<SubmittedVariantEntity>() {
-            def currResultListIterator = null
             @Override
             SubmittedVariantEntity read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-                // We need this somewhat convoluted read routine to
-                // unwind the "list of results" returned by the batching cursor
-                if (Objects.isNull(currResultListIterator) || !currResultListIterator.hasNext()) {
-                    if (allelesMatchFalseVariantIterator.hasNext()) {
-                        currResultListIterator = allelesMatchFalseVariantIterator.next().iterator()
-                    }
-                }
-                println(currResultListIterator)
-                if(Objects.nonNull(currResultListIterator) && currResultListIterator.hasNext()) {
-                    return currResultListIterator.next()
-                }
-                return null
+                return allelesMatchFalseVariantIterator.hasNext()? allelesMatchFalseVariantIterator.next(): null
             }
 
             @Override
