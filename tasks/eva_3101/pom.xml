@@ -25,15 +25,6 @@
             <groupId>uk.ac.ebi.eva</groupId>
             <artifactId>eva-accession-deprecate</artifactId>
             <version>0.6.16-SNAPSHOT</version>
-            <exclusions>
-                <!-- Currently this is needed because the eva-accession-deprecate has a transitive dependency
-                on eva-metrics which in turn has a dependency on Spring Web 5.3
-                which is incompatible with Spring Boot 2.1.0.RELEASE used in eva-accession -->
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-web</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
