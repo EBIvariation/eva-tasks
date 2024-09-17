@@ -46,10 +46,11 @@ def remediate_lower_case_nucleotide(working_dir, private_config_xml_file, profil
                                 remediate_case_cant_merge(working_dir, sid_fid_gt_one, db_name)
                             else:
                                 sid_fid_not_present_in_db = variant_sid_fid_tuple_set.difference(common_pairs)
-                                remediate_case_merge_all_common_sid_fid_has_one_file(variants_coll, variant,
-                                                                                     sid_fid_not_present_in_db, new_id)
+                                remediate_case_merge_all_common_sid_fid_has_one_file(variants_coll, variant_in_db,
+                                                                                     variant, sid_fid_not_present_in_db,
+                                                                                     new_id)
                         else:
-                            remediate_case_merge_all_sid_fid_different(variants_coll, variant, new_id)
+                            remediate_case_merge_all_sid_fid_different(variants_coll, variant_in_db, variant, new_id)
                     else:
                         # no merge required as new id is not present
                         remediate_case_no_id_collision(variants_coll, variant, new_id)
@@ -74,10 +75,21 @@ def remediate_case_no_id_collision(variants_coll, variant, new_id):
 
     # update all the relevant fields uppercase
     variant['_id'] = new_id
+
+    # remove lowercase hgvs id and add uppercase hgvs_id if not present
+    variant_old_hgvs_id_name = f"{variant['chr']}:g.{variant['start']}{variant['ref']}>{variant['alt']}"
+    variant_new_hgvs_id_name = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
+    # copy everything except the lowercase one
+    variant_hgvs_ids = [hgvs_id for hgvs_id in variant['hgvs'] if hgvs_id['name'] != variant_old_hgvs_id_name]
+    variant_hgvs_ids_names = [hgvs['names'] for hgvs in variant_hgvs_ids]
+    # check if the uppercase one is already present, add if not
+    if variant_new_hgvs_id_name not in variant_hgvs_ids_names:
+        variant_hgvs_ids.append({"type": "genomic", "name": variant_new_hgvs_id_name})
+    variant['hgvs'] = variant_hgvs_ids
+
     variant['ref'] = variant['ref'].upper()
     variant['alt'] = variant['alt'].upper()
     variant['files'] = uppercase_variant_files(variant)
-    variant['hgvs'] = uppercase_variant_hgvs(variant)
     variant['st'] = uppercase_variant_st(variant)
 
     # insert updated variant and delete the existing one with lowercase
@@ -86,14 +98,25 @@ def remediate_case_no_id_collision(variants_coll, variant, new_id):
     variants_coll.delete_one({'_id': variant_old_id})
 
 
-def remediate_case_merge_all_sid_fid_different(variants_coll, variant, new_id):
-    update = {
-        "$push": {
-            "files": {"$each": uppercase_variant_files(variant)},
-            "hgvs": {"$each": uppercase_variant_hgvs(variant)},
-            "st": {"$each": uppercase_variant_st(variant)},
+def remediate_case_merge_all_sid_fid_different(variants_coll, variant_in_db, variant, new_id):
+    variant_hgvs_id_name_uppercase = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
+    hgvs_id_names_in_db = [hgvs_id['name'] for hgvs_id in variant_in_db['hgvs']]
+    if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db:
+        update = {
+            "$push": {
+                "files": {"$each": uppercase_variant_files(variant)},
+                "hgvs": {"$each": [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}]},
+                "st": {"$each": uppercase_variant_st(variant)},
+            }
         }
-    }
+    else:
+        update = {
+            "$push": {
+                "files": {"$each": uppercase_variant_files(variant)},
+                "st": {"$each": uppercase_variant_st(variant)}
+            }
+        }
+
     # update the existing uppercase variant with values from lowercase variant and delete the lowercase variant thereafter
     logger.info(f"Inserting variant (case merge all sid fid diff):  {variant}")
     variants_coll.update_one({"_id": new_id}, update)
@@ -111,20 +134,30 @@ def remediate_case_cant_merge(working_dir, sid_fid_gt_one, db_name):
             nmc_file.write(f"{p}\n")
 
 
-def remediate_case_merge_all_common_sid_fid_has_one_file(variants_coll, variant, sid_fid_not_present_in_db, new_id):
+def remediate_case_merge_all_common_sid_fid_has_one_file(variants_coll, variant_in_db, variant,
+                                                         sid_fid_not_present_in_db, new_id):
     candidate_files = [file_obj for file_obj in variant.get('files', []) if
                        (file_obj['sid'], file_obj['fid']) in sid_fid_not_present_in_db]
     candidate_st = [st_obj for st_obj in variant.get('st', []) if
                     (st_obj['sid'], st_obj['fid']) in sid_fid_not_present_in_db]
-    # TODO:hgvs
 
-    update = {
-        "$push": {
-            "files": {"$each": uppercase_variant_files({'files': candidate_files})},
-            "hgvs": {"$each": uppercase_variant_hgvs({'hgvs': []})},
-            "st": {"$each": uppercase_variant_st({'st': candidate_st})},
+    variant_hgvs_id_name_uppercase = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
+    hgvs_id_names_in_db = [hgvs_id['name'] for hgvs_id in variant_in_db['hgvs']]
+    if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db:
+        update = {
+            "$push": {
+                "files": {"$each": uppercase_variant_files({'files': candidate_files})},
+                "hgvs": {"$each": [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}]},
+                "st": {"$each": uppercase_variant_st({'st': candidate_st})},
+            }
         }
-    }
+    else:
+        update = {
+            "$push": {
+                "files": {"$each": uppercase_variant_files({'files': candidate_files})},
+                "st": {"$each": uppercase_variant_st({'st': candidate_st})}
+            }
+        }
 
     # update the existing uppercase variant with values from lowercase variant and delete the lowercase variant thereafter
     logger.info(f"Inserting variant (case merge sid fid have only one file):  {variant}")
@@ -137,21 +170,6 @@ def uppercase_variant_files(variant):
     return [
         {**file_obj, 'alts': file_obj['alts'].upper()} if 'alts' in file_obj else file_obj
         for file_obj in variant.get("files", [])
-    ]
-
-
-def uppercase_variant_hgvs(variant):
-    start = str(variant.get('start', ''))
-
-    def uppercase_after_start(name):
-        start_index = name.find(start)
-        if start_index == -1:
-            return name
-        return name[:start_index + len(start)] + name[start_index + len(start):].upper()
-
-    return [
-        {**hgvs_obj, 'name': uppercase_after_start(hgvs_obj['name'])} if 'name' in hgvs_obj else hgvs_obj
-        for hgvs_obj in variant.get("hgvs", [])
     ]
 
 
