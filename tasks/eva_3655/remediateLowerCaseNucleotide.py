@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import logging
 import os
 
@@ -9,20 +10,22 @@ logger = log_cfg.get_logger(__name__)
 log_cfg.add_stdout_handler()
 log_cfg.set_log_level(logging.INFO)
 
+# regex_pattern = r'^[a-zA-Z0-9_.]+_[0-9]+_([a-zA-Z]*[^ACGTN]+[a-zA-Z]*_?[a-zA-Z]*|[a-zA-Z]*_?[a-zA-Z]*[^ACGTN]+[a-zA-Z]*)$'
+regex_pattern = r'^[a-zA-Z0-9_.]+_[0-9]+_([a-zA-Z]*[a-z]+[a-zA-Z]*_?[a-zA-Z]*|[a-zA-Z]*_?[a-zA-Z]*[a-z]+[a-zA-Z]*)$'
+
 
 def remediate_lower_case_nucleotide(working_dir, private_config_xml_file, profile, db_name):
     with get_mongo_connection_handle(profile, private_config_xml_file) as mongo_conn:
         variants_coll = mongo_conn[db_name]['variants_2_0']
         files_coll = mongo_conn[db_name]['files_2_0']
         # regex for finding candidates with lowercase in ref or alt
-        regex_pattern = r'^[a-zA-Z0-9_.]+_[0-9]+_([a-zA-Z]*[a-z]+[a-zA-Z]*_?[a-zA-Z]*|[a-zA-Z]*_?[a-zA-Z]*[a-z]+[a-zA-Z]*)$'
         cursor = variants_coll.find({'_id': {'$regex': regex_pattern}})
         if cursor:
             for variant in cursor:
                 # double check if the candidate variant actually has lowercase ref or alt
                 if has_lowercase_ref_or_alt(variant):
                     # create new id by making ref and alt uppercase
-                    new_id = f"{variant['chr']}_{variant['start']}_{variant['ref'].upper()}_{variant['alt'].upper()}"
+                    new_id = f"{variant['chr']}_{variant['start']}_{get_uppercase_ref_alt(variant['ref'])}_{get_uppercase_ref_alt(variant['alt'])}"
 
                     # check if new id is present in db and get the corresponding variant
                     variant_in_db = variants_coll.find_one({'_id': new_id})
@@ -68,6 +71,19 @@ def has_lowercase_ref_or_alt(variant):
         return False
 
 
+def get_uppercase_ref_alt(ref_alt):
+    if len(ref_alt) < 50:
+        return ref_alt.upper()
+    else:
+        return encrypt_sha1(ref_alt.upper())
+
+
+def encrypt_sha1(data):
+    sha1 = hashlib.sha1()
+    sha1.update(data.encode('utf-8'))
+    return sha1.digest()
+
+
 def remediate_case_no_id_collision(variants_coll, variant, new_id):
     logger.info(f"variant to be deleted (case no id collision):  {variant}")
 
@@ -80,8 +96,8 @@ def remediate_case_no_id_collision(variants_coll, variant, new_id):
     variant_old_hgvs_id_name = f"{variant['chr']}:g.{variant['start']}{variant['ref']}>{variant['alt']}"
     variant_new_hgvs_id_name = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
     # copy everything except the lowercase one
-    variant_hgvs_ids = [hgvs_id for hgvs_id in variant['hgvs'] if hgvs_id['name'] != variant_old_hgvs_id_name]
-    variant_hgvs_ids_names = [hgvs['names'] for hgvs in variant_hgvs_ids]
+    variant_hgvs_ids = [hgvs_id for hgvs_id in variant.get('hgvs', []) if hgvs_id['name'] != variant_old_hgvs_id_name]
+    variant_hgvs_ids_names = [hgvs['name'] for hgvs in variant_hgvs_ids]
     # check if the uppercase one is already present, add if not
     if variant_new_hgvs_id_name not in variant_hgvs_ids_names:
         variant_hgvs_ids.append({"type": "genomic", "name": variant_new_hgvs_id_name})
@@ -101,21 +117,16 @@ def remediate_case_no_id_collision(variants_coll, variant, new_id):
 def remediate_case_merge_all_sid_fid_different(variants_coll, variant_in_db, variant, new_id):
     variant_hgvs_id_name_uppercase = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
     hgvs_id_names_in_db = [hgvs_id['name'] for hgvs_id in variant_in_db['hgvs']]
-    if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db:
-        update = {
-            "$push": {
-                "files": {"$each": uppercase_variant_files(variant)},
-                "hgvs": {"$each": [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}]},
-                "st": {"$each": uppercase_variant_st(variant)},
-            }
+    uppercase_variant_hgvs = [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}] \
+        if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db else []
+
+    update = {
+        "$push": {
+            "files": {"$each": uppercase_variant_files(variant)},
+            "hgvs": {"$each": uppercase_variant_hgvs},
+            "st": {"$each": uppercase_variant_st(variant)},
         }
-    else:
-        update = {
-            "$push": {
-                "files": {"$each": uppercase_variant_files(variant)},
-                "st": {"$each": uppercase_variant_st(variant)}
-            }
-        }
+    }
 
     # update the existing uppercase variant with values from lowercase variant and delete the lowercase variant thereafter
     logger.info(f"Inserting variant (case merge all sid fid diff):  {variant}")
@@ -143,21 +154,16 @@ def remediate_case_merge_all_common_sid_fid_has_one_file(variants_coll, variant_
 
     variant_hgvs_id_name_uppercase = f"{variant['chr']}:g.{variant['start']}{variant['ref'].upper()}>{variant['alt'].upper()}"
     hgvs_id_names_in_db = [hgvs_id['name'] for hgvs_id in variant_in_db['hgvs']]
-    if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db:
-        update = {
-            "$push": {
-                "files": {"$each": uppercase_variant_files({'files': candidate_files})},
-                "hgvs": {"$each": [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}]},
-                "st": {"$each": uppercase_variant_st({'st': candidate_st})},
-            }
+    uppercase_variant_hgvs = [{"type": "genomic", "name": variant_hgvs_id_name_uppercase}] \
+        if variant_hgvs_id_name_uppercase not in hgvs_id_names_in_db else []
+
+    update = {
+        "$push": {
+            "files": {"$each": uppercase_variant_files({'files': candidate_files})},
+            "hgvs": {"$each": uppercase_variant_hgvs},
+            "st": {"$each": uppercase_variant_st({'st': candidate_st})},
         }
-    else:
-        update = {
-            "$push": {
-                "files": {"$each": uppercase_variant_files({'files': candidate_files})},
-                "st": {"$each": uppercase_variant_st({'st': candidate_st})}
-            }
-        }
+    }
 
     # update the existing uppercase variant with values from lowercase variant and delete the lowercase variant thereafter
     logger.info(f"Inserting variant (case merge sid fid have only one file):  {variant}")
