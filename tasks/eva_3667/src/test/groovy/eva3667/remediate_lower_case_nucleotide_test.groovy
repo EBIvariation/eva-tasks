@@ -27,7 +27,8 @@ class RemediationApplicationIntegrationTest {
     private static String UPPERCASE_LARGE_REF = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     private static String UPPERCASE_LARGE_ALT = "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
 
-    def setUpEnvAndRunRemediationWithQC(String testDBName, List<Document> filesData, List<Document> variantsData, def qcMethod) {
+    def setUpEnvAndRunRemediationWithQC(String testDBName, List<Document> filesData, List<Document> variantsData,
+                                        List<Document> annotationsData, def qcMethod) {
         String testPropertiesFile = "/home/nkumar2/IdeaProjects/eva-tasks/tasks/eva_3667/src/test/resources/application-test.properties"
         String workingDir = "/home/nkumar2/IdeaProjects/eva-tasks/tasks/eva_3667/src/test/test_run/"
         File nmcFile = new File(Paths.get(workingDir, "/non_merged_candidates/", testDBName + ".txt").toString())
@@ -40,6 +41,7 @@ class RemediationApplicationIntegrationTest {
 
         mongoTemplate.getCollection(RemediationApplication.FILES_COLLECTION).drop()
         mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION).drop()
+        mongoTemplate.getCollection(RemediationApplication.ANNOTATIONS_COLLECTION).drop()
         if (nmcFile.exists()) {
             nmcFile.delete()
         }
@@ -48,6 +50,9 @@ class RemediationApplicationIntegrationTest {
         }
         if (variantsData != null && !variantsData.isEmpty()) {
             mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION).insertMany(variantsData)
+        }
+        if (annotationsData != null && !annotationsData.isEmpty()) {
+            mongoTemplate.getCollection(RemediationApplication.ANNOTATIONS_COLLECTION).insertMany(annotationsData)
         }
 
 
@@ -83,14 +88,15 @@ class RemediationApplicationIntegrationTest {
         String testDBName = "test_lowercase_remediation_db_different_cases"
         List<Document> filesData = getFilesDataForDifferentTestCases()
         List<Document> variantsData = getVariantsDataForDifferentTestCases()
-        setUpEnvAndRunRemediationWithQC(testDBName, filesData, variantsData, this.&qcTestWithDifferentCases)
+        List<Document> annotationsData = getAnnotationsDataForDifferentTestCases()
+        setUpEnvAndRunRemediationWithQC(testDBName, filesData, variantsData, annotationsData, this.&qcTestWithDifferentCases)
     }
 
     @Test
     void testRemediateLowerCaseNucleotideHgvsNotPresent() {
         String testDBName = "test_lowercase_remediation_db_hgvs_not_present"
         List<Document> variantsData = getVariantsDataForHgvsNotPresent()
-        setUpEnvAndRunRemediationWithQC(testDBName, new ArrayList<>(), variantsData, this.&qcTestNoHgvsPresent)
+        setUpEnvAndRunRemediationWithQC(testDBName, new ArrayList<>(), variantsData, new ArrayList<>(), this.&qcTestNoHgvsPresent)
     }
 //
 //    @Test
@@ -107,6 +113,16 @@ class RemediationApplicationIntegrationTest {
                 getFileDocument("sid31", "fid31", "file_name_31_1.vcf.gz"),
                 //case id collision - fid has just one file
                 getFileDocument("sid41", "fid41", "file_name_41.vcf.gz")
+        )
+    }
+
+    List<Document> getAnnotationsDataForDifferentTestCases() {
+        return Arrays.asList(
+                // delete lowercase and insert with uppercase
+                new Document("_id", "chr1_11111111_a_g_82_82").append("cachev", 82).append("vepv", 82),
+                // delete lowercase - uppercase already present
+                new Document("_id", "chr1_11111111_a_g_83_83").append("cachev", 83).append("vepv", 83),
+                new Document("_id", "chr1_11111111_A_G_83_83").append("cachev", 83).append("vepv", 83),
         )
     }
 
@@ -189,7 +205,7 @@ class RemediationApplicationIntegrationTest {
 
     void qcTestWithDifferentCases(MongoTemplate mongoTemplate, String workingDir, String dbName) {
         MongoCollection<VariantDocument> variantsColl = mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION)
-
+        MongoCollection<Document> annotationsColl = mongoTemplate.getCollection(RemediationApplication.ANNOTATIONS_COLLECTION)
         // case_no_id_collision
 
         // assert lowercase variant deleted
@@ -204,6 +220,16 @@ class RemediationApplicationIntegrationTest {
         assertEquals('G', upperCaseVariant.get("alt"))
         assertEquals('chr1:g.11111111A>G', upperCaseVariant.get("hgvs")[0]["name"])
         assertEquals('A', upperCaseVariant.get("st")[0]["mafAl"])
+
+        // assert annotation remediation
+        List<Document> lowercaseAnnot1 = annotationsColl.find(Filters.eq("_id", "chr1_11111111_a_g_82_82")).into([])
+        List<Document> lowercaseAnnot2 = annotationsColl.find(Filters.eq("_id", "chr1_11111111_a_g_83_83")).into([])
+        assertEquals(0, lowercaseAnnot1.size())
+        assertEquals(0, lowercaseAnnot2.size())
+        List<Document> uppercaseAnnot1 = annotationsColl.find(Filters.eq("_id", "chr1_11111111_A_G_82_82")).into([])
+        List<Document> uppercaseAnnot2 = annotationsColl.find(Filters.eq("_id", "chr1_11111111_A_G_83_83")).into([])
+        assertEquals(1, uppercaseAnnot1.size())
+        assertEquals(1, uppercaseAnnot2.size())
 
 
         // case_id_collision_all_sid_fid_diff

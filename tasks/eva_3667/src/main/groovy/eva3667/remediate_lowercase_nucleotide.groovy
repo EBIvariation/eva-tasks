@@ -55,6 +55,7 @@ class RemediationApplication implements CommandLineRunner {
 
     public static final String VARIANTS_COLLECTION = "variants_2_0"
     public static final String FILES_COLLECTION = "files_2_0"
+    public static final String ANNOTATIONS_COLLECTION = "annotations_2_0"
     public static final String FILES_COLLECTION_STUDY_ID_KEY = "sid"
     public static final String FILES_COLLECTION_FILE_ID_KEY = "fid"
 
@@ -167,6 +168,9 @@ class RemediationApplication implements CommandLineRunner {
         mongoTemplate.save(upperCaseVariant, VARIANTS_COLLECTION)
         logger.info("case no id collision - delete lowercase variant: {}", lowercaseVariant)
         mongoTemplate.remove(Query.query(Criteria.where("_id").is(lowercaseVariant.getId())), VARIANTS_COLLECTION)
+
+        // remediate Annotations
+        remediateAnnotations(lowercaseVariant.getId(), newId)
     }
 
     void remediateCaseMergeAllSidFidAreDifferent(VariantDocument variantInDB, VariantDocument lowercaseVariant, String newId) {
@@ -197,6 +201,8 @@ class RemediationApplication implements CommandLineRunner {
                 Updates.combine(updateOperations))
         logger.info("case merge all sid fid are different - delete lowercase variant: {}", lowercaseVariant)
         mongoTemplate.remove(Query.query(Criteria.where("_id").is(lowercaseVariant.getId())), VARIANTS_COLLECTION)
+
+        remediateAnnotations(lowercaseVariant.getId(), newId)
     }
 
     void remediateCaseCantMerge(String workingDir, Set<Pair> sidFidPairsWithGtOneEntry, String dbName, VariantDocument lowercaseVariant) {
@@ -253,6 +259,41 @@ class RemediationApplication implements CommandLineRunner {
                 Updates.combine(updateOperations))
         logger.info("case merge all common sid fid has one file - delete lowercase variant: {}", lowercaseVariant)
         mongoTemplate.remove(Query.query(Criteria.where("_id").is(lowercaseVariant.getId())), VARIANTS_COLLECTION)
+
+        remediateAnnotations(lowercaseVariant.getId(), newId)
+    }
+
+    void remediateAnnotations(String lowercaseVariantId, String newVariantId) {
+        // Fix associated annotations - remove the lowercase one and insert uppercase one if not present
+        Query annotationsCombinedRegexQuery = new Query(
+                new Criteria().orOperator(
+                        where("_id").regex("^" + lowercaseVariantId + ".*"),
+                        where("_id").regex("^" + newVariantId + ".*")
+                )
+        )
+        List<Document> annotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
+                .find(annotationsCombinedRegexQuery.getQueryObject())
+                .into(new ArrayList<>())
+        Set<String> uppercaseAnnotationIdSet = annotationsList.stream()
+                .filter(doc -> doc.get("_id").toString().startsWith(newVariantId))
+                .map(doc -> doc.get("_id"))
+                .collect(Collectors.toSet())
+        Set<Document> lowercaseAnnotationsSet = annotationsList.stream()
+                .filter(doc -> doc.get("_id").toString().startsWith(lowercaseVariantId))
+                .collect(Collectors.toSet())
+        for (Document annotation : lowercaseAnnotationsSet) {
+            // if corresponding uppercase annotation is already present skip it else insert it
+            String lowercaseAnnotationId = annotation.get("_id")
+            String uppercaseAnnotationId = lowercaseAnnotationId.replace(lowercaseVariantId, newVariantId)
+            if (!uppercaseAnnotationIdSet.contains(uppercaseAnnotationId)) {
+                annotation.put("_id", uppercaseAnnotationId)
+                logger.info("insert uppercase annotation: {}", annotation)
+                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).insertOne(annotation)
+            }
+            // delete the lowercase annotation
+            logger.info("delete lowercase annotation: {}", lowercaseAnnotationId)
+            mongoTemplate.remove(Query.query(Criteria.where("_id").is(lowercaseAnnotationId)), ANNOTATIONS_COLLECTION)
+        }
     }
 
     Map<Pair, Integer> getSidFidPairNumberOfDocumentsMap(Set<Pair> commonSidFidPairs) {
