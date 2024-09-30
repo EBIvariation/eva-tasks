@@ -26,8 +26,6 @@ class RemediationApplicationIntegrationTest {
     private static String LOWERCASE_LARGE_ALT = "gggggggggggggggggggggggggggggggggggggggggggggggggg"
     private static String UPPERCASE_LARGE_REF = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     private static String UPPERCASE_LARGE_ALT = "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
-    private static String LOWERCASE_HGVS_LARGE_REF_ALT = LOWERCASE_LARGE_REF + ">" + LOWERCASE_LARGE_ALT
-    private static String UPPERCASE_HGVS_LARGE_REF_ALT = UPPERCASE_LARGE_REF + ">" + UPPERCASE_LARGE_ALT
 
     def setUpEnvAndRunRemediationWithQC(String testDBName, List<Document> filesData, List<Document> variantsData, def qcMethod) {
         String testPropertiesFile = "/home/nkumar2/IdeaProjects/eva-tasks/tasks/eva_3667/src/test/resources/application-test.properties"
