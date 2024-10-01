@@ -27,6 +27,7 @@ import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantStatsMongo
 import uk.ac.ebi.eva.commons.mongodb.entities.subdocuments.HgvsMongo
 
 import java.nio.file.Paths
+import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 import static org.springframework.data.mongodb.core.query.Criteria.where
@@ -59,7 +60,7 @@ class RemediationApplication implements CommandLineRunner {
     public static final String FILES_COLLECTION_STUDY_ID_KEY = "sid"
     public static final String FILES_COLLECTION_FILE_ID_KEY = "fid"
 
-    public static final String REGEX_PATTERN = '(?:\\S+_){2}([ACGTN]*[^ACGTN_]+[ACGTN]*)?_([ACGTN]*[^ACGTN_]+[ACGTN]*)?(?=\\s*$)'
+    public static final String REGEX_PATTERN = "(\\S+_){2}(?:(?=[^ACGTN_])\\S*|([ACGTN]*[^ACGTN_]+[ACGTN]*))_?(?:(?=[^ACGTN_])\\S*|([ACGTN]*[^ACGTN_]+[ACGTN]*))?"
 
     @Autowired
     MongoTemplate mongoTemplate
@@ -186,14 +187,16 @@ class RemediationApplication implements CommandLineRunner {
         ]
 
         Map<String, Set<String>> uppercaseHgvs = getUppercaseHgvs(lowercaseVariant)
-        String uppercaseHgvsName = uppercaseHgvs.values().iterator().next()
-        boolean hgvsNameAlreadyInDB = variantInDB.getHgvs().stream()
-                .map(hgvs -> hgvs.getName())
-                .anyMatch(name -> name.equals(uppercaseHgvsName))
-        if (!hgvsNameAlreadyInDB) {
-            HgvsMongo hgvsMongo = new HgvsMongo(uppercaseHgvs.keySet().iterator().next(), uppercaseHgvsName)
-            updateOperations.add(Updates.push("hgvs", new Document("\$each", Collections.singletonList(
-                    mongoTemplate.getConverter().convertToMongoType(hgvsMongo)))))
+        if (!uppercaseHgvs.isEmpty()) {
+            String uppercaseHgvsName = uppercaseHgvs.values().iterator().next()
+            boolean hgvsNameAlreadyInDB = variantInDB.getHgvs().stream()
+                    .map(hgvs -> hgvs.getName())
+                    .anyMatch(name -> name.equals(uppercaseHgvsName))
+            if (!hgvsNameAlreadyInDB) {
+                HgvsMongo hgvsMongo = new HgvsMongo(uppercaseHgvs.keySet().iterator().next(), uppercaseHgvsName)
+                updateOperations.add(Updates.push("hgvs", new Document("\$each", Collections.singletonList(
+                        mongoTemplate.getConverter().convertToMongoType(hgvsMongo)))))
+            }
         }
 
         logger.info("case merge all sid fid are different - updates: {}", updateOperations)
@@ -216,7 +219,7 @@ class RemediationApplication implements CommandLineRunner {
         String nmcFilePath = Paths.get(nmcDirPath, dbName + ".txt").toString()
         try (BufferedWriter nmcFile = new BufferedWriter(new FileWriter(nmcFilePath, true))) {
             for (Pair<String, String> p : sidFidPairsWithGtOneEntry) {
-                nmcFile.write(p.getFirst() + "," + p.getSecond() + "\n")
+                nmcFile.write(p.getFirst() + "," + p.getSecond() + "," + lowercaseVariant.getId() + "\n")
             }
         } catch (IOException e) {
             logger.error("error writing case variant can't be merged in the file:  {}", lowercaseVariant)
@@ -244,14 +247,16 @@ class RemediationApplication implements CommandLineRunner {
         ]
 
         Map<String, Set<String>> uppercaseHgvs = getUppercaseHgvs(lowercaseVariant)
-        String uppercaseHgvsName = uppercaseHgvs.values().iterator().next()
-        boolean hgvsNameAlreadyInDB = variantInDB.getHgvs().stream()
-                .map(hgvs -> hgvs.getName())
-                .anyMatch(name -> name.equals(uppercaseHgvsName))
-        if (!hgvsNameAlreadyInDB) {
-            HgvsMongo hgvsMongo = new HgvsMongo(uppercaseHgvs.keySet().iterator().next(), uppercaseHgvsName)
-            updateOperations.add(Updates.push("hgvs", new Document("\$each", Collections.singletonList(
-                    mongoTemplate.getConverter().convertToMongoType(hgvsMongo)))))
+        if (!uppercaseHgvs.isEmpty()) {
+            String uppercaseHgvsName = uppercaseHgvs.values().iterator().next()
+            boolean hgvsNameAlreadyInDB = variantInDB.getHgvs().stream()
+                    .map(hgvs -> hgvs.getName())
+                    .anyMatch(name -> name.equals(uppercaseHgvsName))
+            if (!hgvsNameAlreadyInDB) {
+                HgvsMongo hgvsMongo = new HgvsMongo(uppercaseHgvs.keySet().iterator().next(), uppercaseHgvsName)
+                updateOperations.add(Updates.push("hgvs", new Document("\$each", Collections.singletonList(
+                        mongoTemplate.getConverter().convertToMongoType(hgvsMongo)))))
+            }
         }
 
         logger.info("case merge all common sid fid has one file - updates: {}", updateOperations)
@@ -264,11 +269,13 @@ class RemediationApplication implements CommandLineRunner {
     }
 
     void remediateAnnotations(String lowercaseVariantId, String newVariantId) {
+        String escapedLowercaseVariantId = Pattern.quote(lowercaseVariantId);
+        String escapedNewVariantId = Pattern.quote(newVariantId);
         // Fix associated annotations - remove the lowercase one and insert uppercase one if not present
         Query annotationsCombinedRegexQuery = new Query(
                 new Criteria().orOperator(
-                        where("_id").regex("^" + lowercaseVariantId + ".*"),
-                        where("_id").regex("^" + newVariantId + ".*")
+                        where("_id").regex("^" + escapedLowercaseVariantId + ".*"),
+                        where("_id").regex("^" + escapedNewVariantId + ".*")
                 )
         )
         List<Document> annotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)

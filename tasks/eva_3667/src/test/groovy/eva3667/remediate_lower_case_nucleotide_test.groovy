@@ -29,8 +29,9 @@ class RemediationApplicationIntegrationTest {
 
     def setUpEnvAndRunRemediationWithQC(String testDBName, List<Document> filesData, List<Document> variantsData,
                                         List<Document> annotationsData, def qcMethod) {
-        String testPropertiesFile = "/home/nkumar2/IdeaProjects/eva-tasks/tasks/eva_3667/src/test/resources/application-test.properties"
-        String workingDir = "/home/nkumar2/IdeaProjects/eva-tasks/tasks/eva_3667/src/test/test_run/"
+        String resourceDir = "src/test/resources"
+        String testPropertiesFile = resourceDir + "/application-test.properties"
+        String workingDir = resourceDir + "/test_run"
         File nmcFile = new File(Paths.get(workingDir, "/non_merged_candidates/", testDBName + ".txt").toString())
 
         // Removing existing data and setup DB with test Data
@@ -98,13 +99,71 @@ class RemediationApplicationIntegrationTest {
         List<Document> variantsData = getVariantsDataForHgvsNotPresent()
         setUpEnvAndRunRemediationWithQC(testDBName, new ArrayList<>(), variantsData, new ArrayList<>(), this.&qcTestNoHgvsPresent)
     }
-//
-//    @Test
-//    void testRemediateLowerCaseNucleotideForLargeRefAndAlt() {
-//        String testDBName = "test_lowercase_remediation_db_large_ref_alt"
-//        List<VariantSourceEntity> filesData = getFilesDataForLargeRefAndAlt()
-//        List<VariantDocument> variantsData = getVariantsDataLargeRefAndAlt()
-//        setUpEnvAndRunRemediationWithQC(testDBName, filesData, variantsData)
+
+    @Test
+    void testRemediateLowerCaseNucleotideForLargeRefAndAlt() {
+        String testDBName = "test_lowercase_remediation_db_large_ref_alt"
+        List<Document> filesData = getFilesDataForDifferentTestCases()
+        List<Document> variantsData = getVariantsDataForLargeRefAlt()
+        List<Document> annotationsData = getAnnotationsDataForLargeRefAlt()
+        setUpEnvAndRunRemediationWithQC(testDBName, filesData, variantsData, annotationsData, this.&qcTestWithDifferentCasesLargeRefAlt)
+    }
+
+    @Test
+    void testRegex() {
+        Pattern pattern = Pattern.compile(RemediationApplication.REGEX_PATTERN)
+        String[] matchingStrings = new String[]{
+                buildVariantId("chr1", 77777777, "A", "g"),
+                buildVariantId("chr1", 77777777, "a", "G"),
+                buildVariantId("chr1", 77777777, "a", "g"),
+                buildVariantId("chr1", 77777777, "a", ""),
+                buildVariantId("chr1", 77777777, "", "g"),
+                buildVariantId("chr1", 77777777, "AcG", "AgT"),
+                buildVariantId("chr1", 77777777, "", "AgT"),
+                buildVariantId("chr1", 77777777, "AcG", ""),
+                buildVariantId("chr1", 77777777, "cAG", "gAT"),
+                buildVariantId("chr1", 77777777, "AGc", "ATg"),
+                buildVariantId("chr1", 77777777, "AG5", "AT5"),
+                buildVariantId("chr1", 77777777, "555", "555"),
+                buildVariantId("chr1", 77777777, "a", "g"),
+                buildVariantId("chr1", 77777777, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT),
+                buildVariantId("chr1", 77777777, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT),
+                buildVariantId("chr_1", 77777777, "A", "g"),
+                buildVariantId("chr_1", 77777777, "a", "G"),
+                buildVariantId("chr_1", 77777777, "a", "g"),
+                buildVariantId("chr_1", 77777777, "a", ""),
+                buildVariantId("chr_1", 77777777, "", "g"),
+                buildVariantId("chr_1", 77777777, "AcG", "AgT"),
+                buildVariantId("chr_1", 77777777, "", "AgT"),
+                buildVariantId("chr_1", 77777777, "AcG", ""),
+                buildVariantId("chr_1", 77777777, "cAG", "gAT"),
+                buildVariantId("chr_1", 77777777, "AGc", "ATg"),
+                buildVariantId("chr_1", 77777777, "AG5", "AT5"),
+                buildVariantId("chr_1", 77777777, "555", "555"),
+                buildVariantId("chr_1", 77777777, "a", "g"),
+                buildVariantId("chr_1", 77777777, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT),
+                buildVariantId("chr_1", 77777777, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT)
+        }
+        for (String str : matchingStrings) {
+            Matcher matcher = pattern.matcher(str);
+            assertTrue(matcher.matches(), "Expected string to match: " + str)
+        }
+
+        String[] notMatchingStrings = new String[]{
+                buildVariantId("chr1", 77777777, "A", "G"),
+                buildVariantId("chr1", 77777777, "A", ""),
+                buildVariantId("chr1", 77777777, "", "G"),
+                buildVariantId("chr1", 77777777, "ACT", "CTG"),
+                buildVariantId("chr_1", 77777777, "A", "G"),
+                buildVariantId("chr_1", 77777777, "A", ""),
+                buildVariantId("chr_1", 77777777, "", "G"),
+                buildVariantId("chr_1", 77777777, "ACT", "CTG")
+        }
+        for (String str : notMatchingStrings) {
+            Matcher matcher = pattern.matcher(str);
+            assertFalse(matcher.matches(), "Expected string not to match: " + str);
+        }
+    }
 
     List<Document> getFilesDataForDifferentTestCases() {
         return Arrays.asList(
@@ -123,6 +182,22 @@ class RemediationApplicationIntegrationTest {
                 // delete lowercase - uppercase already present
                 new Document("_id", "chr1_11111111_a_g_83_83").append("cachev", 83).append("vepv", 83),
                 new Document("_id", "chr1_11111111_A_G_83_83").append("cachev", 83).append("vepv", 83),
+        )
+    }
+
+    List<Document> getAnnotationsDataForLargeRefAlt() {
+        return Arrays.asList(
+                // delete lowercase and insert with uppercase
+                new Document("_id", buildVariantId("chr1", 11111111,
+                        LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT) + "_82_82")
+                        .append("cachev", 82).append("vepv", 82),
+                // delete lowercase - uppercase already present
+                new Document("_id", buildVariantId("chr1", 11111111,
+                        LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT) + "_83_83")
+                        .append("cachev", 83).append("vepv", 83),
+                new Document("_id", buildVariantId("chr1", 11111111,
+                        UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT) + "_83_83")
+                        .append("cachev", 83).append("vepv", 83),
         )
     }
 
@@ -280,7 +355,7 @@ class RemediationApplicationIntegrationTest {
         File nonMergedVariantFile = new File(Paths.get(workingDir, "non_merged_candidates", dbName + ".txt").toString())
         assertTrue(nonMergedVariantFile.exists())
         try (BufferedReader nmcFileReader = new BufferedReader(new FileReader(nonMergedVariantFile))) {
-            assertEquals("sid31,fid31", nmcFileReader.readLine())
+            assertEquals("sid31,fid31,chr3_33333333_a_g", nmcFileReader.readLine())
         }
 
 
@@ -379,6 +454,212 @@ class RemediationApplicationIntegrationTest {
                         .stream().sorted().collect(Collectors.toList()))
     }
 
+    List<Document> getVariantsDataForLargeRefAlt() {
+        List<Document> variantDocumentList = new ArrayList<>()
+
+        // case no id collision after remediation
+        List<Document> hgvs11 = Arrays.asList(new Document("type", "genomic").append("name", "chr1:g.11111111a>g"))
+        List<Document> files11 = Arrays.asList(new Document("sid", "sid11").append("fid", "fid11"))
+        List<Document> stats11 = Arrays.asList(getVariantStats("sid11", "fid11", 0.11, 0.11, LOWERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr1", LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT,
+                11111111, 11111111, 1, hgvs11, files11, stats11))
+
+        // case id collision - all sid and fid are different
+        // variant with uppercase ref and alt
+        List<Document> hgvs21 = Arrays.asList(new Document("type", "genomic").append("name", "chr2:g.22222222A>G"))
+        List<Document> files21 = Arrays.asList(new Document("sid", "sid21").append("fid", "fid21"),
+                new Document("sid", "sid211").append("fid", "fid211"))
+        List<Document> stats21 = Arrays.asList(getVariantStats("sid21", "fid21", 0.21, 0.21, UPPERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid211", "fid211", 0.211, 0.211, UPPERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr2", UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT,
+                22222222, 22222222, 1, hgvs21, files21, stats21))
+
+        // variant with lowercase ref and alt
+        List<Document> hgvs22 = Arrays.asList(new Document("type", "genomic").append("name", "chr2:g.22222222a>g"))
+        List<Document> files22 = Arrays.asList(new Document("sid", "sid22").append("fid", "fid22"),
+                new Document("sid", "sid222").append("fid", "fid222"))
+        List<Document> stats22 = Arrays.asList(getVariantStats("sid22", "fid22", 0.22, 0.22, LOWERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid222", "fid222", 0.222, 0.222, LOWERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr2", LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT,
+                22222222, 22222222, 1, hgvs22, files22, stats22))
+
+
+        // case id collision - fid has more than one file
+        // variant with uppercase ref and alt
+        List<Document> hgvs31 = Arrays.asList(new Document("type", "genomic").append("name", "chr3:g.33333333A>G"))
+        List<Document> files31 = Arrays.asList(new Document("sid", "sid31").append("fid", "fid31"),
+                new Document("sid", "sid311").append("fid", "fid311"))
+        List<Document> stats31 = Arrays.asList(getVariantStats("sid31", "fid31", 0.31, 0.31, UPPERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid311", "fid311", 0.311, 0.311, UPPERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr3", UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT,
+                33333333, 33333333, 1, hgvs31, files31, stats31))
+
+        // variant with lowercase ref and alt
+        List<Document> hgvs32 = Arrays.asList(new Document("type", "genomic").append("name", "chr3:g.33333333a>g"))
+        List<Document> files32 = Arrays.asList(new Document("sid", "sid32").append("fid", "fid32"),
+                new Document("sid", "sid322").append("fid", "fid322"),
+                new Document("sid", "sid31").append("fid", "fid31"))
+        List<Document> stats32 = Arrays.asList(getVariantStats("sid32", "fid32", 0.32, 0.32, LOWERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid322", "fid322", 0.322, 0.322, LOWERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid31", "fid31", 0.31, 0.31, UPPERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr3", LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT,
+                33333333, 33333333, 1, hgvs32, files32, stats32))
+
+
+        // case id collision - common fid has just one file
+        // variant with uppercase ref and alt
+        List<Document> hgvs41 = Arrays.asList(new Document("type", "genomic").append("name", "chr4:g.44444444A>G"))
+        List<Document> files41 = Arrays.asList(new Document("sid", "sid41").append("fid", "fid41"),
+                new Document("sid", "sid411").append("fid", "fid411"))
+        List<Document> stats41 = Arrays.asList(getVariantStats("sid41", "fid41", 0.41, 0.41, UPPERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid411", "fid411", 0.411, 0.411, UPPERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr4", UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT,
+                44444444, 44444444, 1, hgvs41, files41, stats41))
+
+        // variant with lowercase ref and alt
+        List<Document> hgvs42 = Arrays.asList(new Document("type", "genomic").append("name", "chr4:g.44444444a>g"))
+        List<Document> files42 = Arrays.asList(new Document("sid", "sid42").append("fid", "fid42"),
+                new Document("sid", "sid422").append("fid", "fid422"),
+                new Document("sid", "sid411").append("fid", "fid411"))
+        List<Document> stats42 = Arrays.asList(getVariantStats("sid42", "fid42", 0.42, 0.42, LOWERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid422", "fid422", 0.422, 0.422, LOWERCASE_LARGE_REF, "0/0"),
+                getVariantStats("sid411", "fid411", 0.411, 0.411, UPPERCASE_LARGE_REF, "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.INDEL.toString(), "chr4", LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT,
+                44444444, 44444444, 1, hgvs42, files42, stats42))
+
+
+        return variantDocumentList
+    }
+
+    void qcTestWithDifferentCasesLargeRefAlt(MongoTemplate mongoTemplate, String workingDir, String dbName) {
+        MongoCollection<VariantDocument> variantsColl = mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION)
+        MongoCollection<Document> annotationsColl = mongoTemplate.getCollection(RemediationApplication.ANNOTATIONS_COLLECTION)
+        // case_no_id_collision
+
+        // assert lowercase variant deleted
+        List<Document> lowerCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT))).into([])
+        assertEquals(0, lowerCaseVariantList.size())
+        // assert uppercase variant inserted
+        List<Document> upperCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT))).into([])
+        assertEquals(1, upperCaseVariantList.size())
+        // assert all things updated to uppercase in the updated variant
+        Document upperCaseVariant = upperCaseVariantList.get(0)
+        assertEquals(UPPERCASE_LARGE_REF, upperCaseVariant.get("ref"))
+        assertEquals(UPPERCASE_LARGE_ALT, upperCaseVariant.get("alt"))
+        assertEquals(UPPERCASE_LARGE_REF, upperCaseVariant.get("st")[0]["mafAl"])
+
+        // assert annotation remediation
+        List<Document> lowercaseAnnot1 = annotationsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT) + "_82_82")).into([])
+        List<Document> lowercaseAnnot2 = annotationsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT) + "_83_83")).into([])
+        assertEquals(0, lowercaseAnnot1.size())
+        assertEquals(0, lowercaseAnnot2.size())
+        List<Document> uppercaseAnnot1 = annotationsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT) + "_82_82")).into([])
+        List<Document> uppercaseAnnot2 = annotationsColl.find(Filters.eq("_id",
+                buildVariantId("chr1", 11111111, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT) + "_83_83")).into([])
+        assertEquals(1, uppercaseAnnot1.size())
+        assertEquals(1, uppercaseAnnot2.size())
+
+
+        // case_id_collision_all_sid_fid_diff
+
+        //  assert lowercase variant deleted
+        lowerCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr2", 22222222, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT))).into([])
+        assertEquals(0, lowerCaseVariantList.size())
+        // assert uppercase variant inserted
+        upperCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr2", 22222222, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT))).into([])
+        assertEquals(1, upperCaseVariantList.size())
+
+        // assert all things updated to uppercase in the updated variant
+        upperCaseVariant = upperCaseVariantList.get(0)
+        assertEquals(UPPERCASE_LARGE_REF, upperCaseVariant.get("ref"))
+        assertEquals(UPPERCASE_LARGE_ALT, upperCaseVariant.get("alt"))
+        assertEquals('chr2:g.22222222A>G', upperCaseVariant.get("hgvs")[0]["name"])
+        assertEquals(Arrays.asList("sid21", "sid211", "sid22", "sid222"),
+                ((List<Document>) upperCaseVariant.get('files')).stream()
+                        .map(doc -> doc.get("sid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("fid21", "fid211", "fid22", "fid222"),
+                ((List<Document>) upperCaseVariant.get('files')).stream()
+                        .map(doc -> doc.get("fid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("sid21", "sid211", "sid22", "sid222"),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("sid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("fid21", "fid211", "fid22", "fid222"),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("fid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList(UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("mafAl"))
+                        .sorted().collect(Collectors.toList()))
+
+
+        // case_id_collision_sid_fid_has_more_than_one_file
+
+        // assert lowercase variant is not deleted
+        lowerCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr3", 33333333, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT))).into([])
+        assertEquals(1, lowerCaseVariantList.size())
+        upperCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr3", 33333333, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT))).into([])
+        assertEquals(1, upperCaseVariantList.size())
+
+        // assert the issue is logged in the file
+        File nonMergedVariantFile = new File(Paths.get(workingDir, "non_merged_candidates", dbName + ".txt").toString())
+        assertTrue(nonMergedVariantFile.exists())
+        try (BufferedReader nmcFileReader = new BufferedReader(new FileReader(nonMergedVariantFile))) {
+            assertTrue(nmcFileReader.readLine().startsWith("sid31,fid31,chr3_33333333"))
+        }
+
+
+        // case id collision - common fid has just one file
+
+        //  assert lowercase variant deleted
+        lowerCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr4", 44444444, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT))).into([])
+        assertEquals(0, lowerCaseVariantList.size())
+        // assert uppercase variant inserted
+        upperCaseVariantList = variantsColl.find(Filters.eq("_id",
+                buildVariantId("chr4", 44444444, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT))).into([])
+        assertEquals(1, upperCaseVariantList.size())
+
+        // assert all things updated to uppercase in the updated variant
+        upperCaseVariant = upperCaseVariantList.get(0)
+        assertEquals(UPPERCASE_LARGE_REF, upperCaseVariant.get("ref"))
+        assertEquals(UPPERCASE_LARGE_ALT, upperCaseVariant.get("alt"))
+        assertEquals('chr4:g.44444444A>G', upperCaseVariant.get("hgvs")[0]["name"])
+        assertEquals(Arrays.asList("sid41", "sid411", "sid42", "sid422"),
+                ((List<Document>) upperCaseVariant.get('files')).stream()
+                        .map(doc -> doc.get("sid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("fid41", "fid411", "fid42", "fid422"),
+                ((List<Document>) upperCaseVariant.get('files')).stream()
+                        .map(doc -> doc.get("fid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("sid41", "sid411", "sid42", "sid422"),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("sid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList("fid41", "fid411", "fid42", "fid422"),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("fid"))
+                        .sorted().collect(Collectors.toList()))
+        assertEquals(Arrays.asList(UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_REF),
+                ((List<Document>) upperCaseVariant.get('st')).stream()
+                        .map(doc -> doc.get("mafAl"))
+                        .sorted().collect(Collectors.toList()))
+    }
+
+
     Document getFileDocument(String sid, String fid, String fileName) {
         return new Document().append("sid", sid).append("fid", fid).append("fname", fileName)
     }
@@ -407,41 +688,6 @@ class RemediationApplicationIntegrationTest {
                 .append("mgf", mgf)
                 .append("mafAl", mafAl)
                 .append("mgfGt", mgfAl)
-    }
-
-    @Test
-    void testRegex() {
-        Pattern pattern = Pattern.compile(RemediationApplication.REGEX_PATTERN)
-        String[] matchingStrings = new String[]{
-                buildVariantId("chr1", 77777777, "a", "g"),
-                buildVariantId("chr1", 77777777, "a", ""),
-                buildVariantId("chr1", 77777777, "", "g"),
-                buildVariantId("chr1", 77777777, "AcG", "AgT"),
-                buildVariantId("chr1", 77777777, "", "AgT"),
-                buildVariantId("chr1", 77777777, "AcG", ""),
-                buildVariantId("chr1", 77777777, "cAG", "gAT"),
-                buildVariantId("chr1", 77777777, "AGc", "ATg"),
-                buildVariantId("chr1", 77777777, "AG5", "AT5"),
-                buildVariantId("chr1", 77777777, "555", "555"),
-                buildVariantId("chr1", 77777777, "a", "g"),
-                buildVariantId("chr1", 77777777, LOWERCASE_LARGE_REF, LOWERCASE_LARGE_ALT),
-                buildVariantId("chr1", 77777777, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT),
-        }
-        for (String str : matchingStrings) {
-            Matcher matcher = pattern.matcher(str);
-            assertTrue(matcher.matches(), "Expected string to match: " + str)
-        }
-
-        String[] notMatchingStrings = new String[]{
-                buildVariantId("chr1", 77777777, "A", "G"),
-                buildVariantId("chr1", 77777777, "A", ""),
-                buildVariantId("chr1", 77777777, "", "G"),
-                buildVariantId("chr1", 77777777, "ACT", "CTG")
-        }
-        for (String str : notMatchingStrings) {
-            Matcher matcher = pattern.matcher(str);
-            assertFalse(matcher.matches(), "Expected string to match: " + str);
-        }
     }
 
     String buildVariantId(String chromosome, int start, String reference, String alternate) {
