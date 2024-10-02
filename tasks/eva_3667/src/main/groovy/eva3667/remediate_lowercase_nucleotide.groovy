@@ -87,65 +87,71 @@ class RemediationApplication implements CommandLineRunner {
             logger.info("Processing Variant: {}", lowercaseVariant)
 
             // filter out false positives - double check if ref or alt really contains lowercase
-            if (hasLowerCaseRefOrAlt(lowercaseVariant)) {
-                logger.info("Variant contains lowercase ref or alt. variant_id: {}, variant_ref: {}, variant_alt: {}",
-                        lowercaseVariant.getId(), lowercaseVariant.getReference(), lowercaseVariant.getAlternate())
-
-                // create new id of variant by making ref and alt uppercase
-                String newId = VariantDocument.buildVariantId(lowercaseVariant.getChromosome(), lowercaseVariant.getStart(),
-                        lowercaseVariant.getReference().toUpperCase(), lowercaseVariant.getAlternate().toUpperCase())
-                logger.info("New id of the variant : {}", newId)
-                // check if new id is present in db and get the corresponding variant
-                Query idQuery = new Query(where("_id").is(newId))
-                VariantDocument variantInDB = mongoTemplate.findOne(idQuery, VariantDocument.class, VARIANTS_COLLECTION)
-
-                // Check if there exists a variant in db that has the same id as newID
-                if (variantInDB != null) {
-                    logger.info("Found existing variant in DB with id: {} {}", newId, variantInDB)
-                    // variant with new db present, needs to check for merging
-                    Set<VariantSourceEntity> lowercaseVariantFileSet = lowercaseVariant.getVariantSources() != null ?
-                            lowercaseVariant.getVariantSources() : new HashSet<>()
-                    Set<VariantSourceEntity> variantInDBFileSet = variantInDB.getVariantSources() != null ?
-                            variantInDB.getVariantSources() : new HashSet<>()
-                    Set<Pair> lowercaseSidFidPairSet = lowercaseVariantFileSet.stream()
-                            .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
-                            .collect(Collectors.toSet())
-                    Set<Pair> variantInDBSidFidPairSet = variantInDBFileSet.stream()
-                            .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
-                            .collect(Collectors.toSet())
-
-                    // take the common pair of sid-fid between the lowercase variant and the variant in db
-                    Set<Pair> commonSidFidPairs = new HashSet<>(lowercaseSidFidPairSet)
-                    commonSidFidPairs.retainAll(variantInDBSidFidPairSet)
-
-                    if (commonSidFidPairs.isEmpty()) {
-                        logger.info("No common sid fid entries between lowercase variant and variant in DB")
-                        remediateCaseMergeAllSidFidAreDifferent(variantInDB, lowercaseVariant, newId)
-                    } else {
-                        // check if there is any pair of sid and fid from common pairs, for which there are more than one entry in files collection
-                        Map<Pair, Integer> result = getSidFidPairNumberOfDocumentsMap(commonSidFidPairs)
-                        Set<Pair> sidFidPairsWithGTOneEntry = result.entrySet().stream()
-                                .filter(entry -> entry.getValue() > 1)
-                                .map(entry -> entry.getKey())
-                                .collect(Collectors.toSet())
-                        if (sidFidPairsWithGTOneEntry.isEmpty()) {
-                            Set<Pair> sidFidPairNotInDB = new HashSet<>(lowercaseSidFidPairSet)
-                            sidFidPairNotInDB.removeAll(commonSidFidPairs)
-                            remediateCaseMergeAllCommonSidFidHasOneFile(variantInDB, lowercaseVariant, sidFidPairNotInDB, newId)
-                        } else {
-                            remediateCaseCantMerge(workingDir, sidFidPairsWithGTOneEntry, dbName, lowercaseVariant)
-                        }
-                    }
-                } else {
-                    logger.warn("Variant with id {} not found in DB", newId)
-                    remediateCaseNoIdCollision(lowercaseVariant, newId)
-                }
-            } else {
+            if (!hasLowerCaseRefOrAlt(lowercaseVariant)) {
                 // False positive - variant captured by regex but does not have any lowercase character in ref or alt
                 logger.info("Variant does not contain any lowercase ref or alt. variant_id: {}, variant_ref: {}, " +
                         "variant_alt: {}", lowercaseVariant.getId(), lowercaseVariant.getReference(),
                         lowercaseVariant.getAlternate())
+                continue
             }
+
+            logger.info("Variant contains lowercase ref or alt. variant_id: {}, variant_ref: {}, variant_alt: {}",
+                    lowercaseVariant.getId(), lowercaseVariant.getReference(), lowercaseVariant.getAlternate())
+
+            // create new id of variant by making ref and alt uppercase
+            String newId = VariantDocument.buildVariantId(lowercaseVariant.getChromosome(), lowercaseVariant.getStart(),
+                    lowercaseVariant.getReference().toUpperCase(), lowercaseVariant.getAlternate().toUpperCase())
+            logger.info("New id of the variant : {}", newId)
+            // check if new id is present in db and get the corresponding variant
+            Query idQuery = new Query(where("_id").is(newId))
+            VariantDocument variantInDB = mongoTemplate.findOne(idQuery, VariantDocument.class, VARIANTS_COLLECTION)
+
+            // Check if there exists a variant in db that has the same id as newID
+            if (variantInDB == null) {
+                logger.warn("Variant with id {} not found in DB", newId)
+                remediateCaseNoIdCollision(lowercaseVariant, newId)
+                continue
+            }
+
+            logger.info("Found existing variant in DB with id: {} {}", newId, variantInDB)
+            // variant with new db present, needs to check for merging
+            Set<VariantSourceEntity> lowercaseVariantFileSet = lowercaseVariant.getVariantSources() != null ?
+                    lowercaseVariant.getVariantSources() : new HashSet<>()
+            Set<VariantSourceEntity> variantInDBFileSet = variantInDB.getVariantSources() != null ?
+                    variantInDB.getVariantSources() : new HashSet<>()
+            Set<Pair> lowercaseSidFidPairSet = lowercaseVariantFileSet.stream()
+                    .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
+                    .collect(Collectors.toSet())
+            Set<Pair> variantInDBSidFidPairSet = variantInDBFileSet.stream()
+                    .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
+                    .collect(Collectors.toSet())
+
+            // take the common pair of sid-fid between the lowercase variant and the variant in db
+            Set<Pair> commonSidFidPairs = new HashSet<>(lowercaseSidFidPairSet)
+            commonSidFidPairs.retainAll(variantInDBSidFidPairSet)
+
+            if (commonSidFidPairs.isEmpty()) {
+                logger.info("No common sid fid entries between lowercase variant and variant in DB")
+                remediateCaseMergeAllSidFidAreDifferent(variantInDB, lowercaseVariant, newId)
+                continue
+            }
+
+            // check if there is any pair of sid and fid from common pairs, for which there are more than one entry in files collection
+            Map<Pair, Integer> result = getSidFidPairNumberOfDocumentsMap(commonSidFidPairs)
+            Set<Pair> sidFidPairsWithGTOneEntry = result.entrySet().stream()
+                    .filter(entry -> entry.getValue() > 1)
+                    .map(entry -> entry.getKey())
+                    .collect(Collectors.toSet())
+            if (sidFidPairsWithGTOneEntry.isEmpty()) {
+                logger.info("All common sid fid entries has only one file entry")
+                Set<Pair> sidFidPairNotInDB = new HashSet<>(lowercaseSidFidPairSet)
+                sidFidPairNotInDB.removeAll(commonSidFidPairs)
+                remediateCaseMergeAllCommonSidFidHasOneFile(variantInDB, lowercaseVariant, sidFidPairNotInDB, newId)
+                continue
+            }
+
+            logger.info("can't merge as sid fid common pair has more than 1 entry in file")
+            remediateCaseCantMerge(workingDir, sidFidPairsWithGTOneEntry, dbName, lowercaseVariant)
         }
 
         // Finished processing
