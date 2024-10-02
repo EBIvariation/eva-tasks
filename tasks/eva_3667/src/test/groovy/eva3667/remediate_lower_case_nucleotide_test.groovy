@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import uk.ac.ebi.eva.commons.models.data.Variant
 import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
+import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantStatsMongo
 
 import java.nio.file.Paths
 import java.util.regex.Matcher
@@ -110,6 +111,14 @@ class RemediationApplicationIntegrationTest {
     }
 
     @Test
+    void testRemediateLowerCaseNucleotideCalculateStats() {
+        String testDBName = "test_lowercase_remediation_db_stat_calculation"
+        List<Document> filesData = getFilesDataForStatsCalculation()
+        List<Document> variantsData = getVariantsDataForStatsCalculation()
+        setUpEnvAndRunRemediationWithQC(testDBName, filesData, variantsData, new ArrayList<>(), this.&qcTestWithStatsCalculation)
+    }
+
+    @Test
     void testRegex() {
         Pattern pattern = Pattern.compile(RemediationApplication.REGEX_PATTERN)
         String[] matchingStrings = new String[]{
@@ -145,7 +154,7 @@ class RemediationApplicationIntegrationTest {
                 buildVariantId("chr_1", 77777777, UPPERCASE_LARGE_REF, UPPERCASE_LARGE_ALT)
         }
         for (String str : matchingStrings) {
-            Matcher matcher = pattern.matcher(str);
+            Matcher matcher = pattern.matcher(str)
             assertTrue(matcher.matches(), "Expected string to match: " + str)
         }
 
@@ -160,8 +169,8 @@ class RemediationApplicationIntegrationTest {
                 buildVariantId("chr_1", 77777777, "ACT", "CTG")
         }
         for (String str : notMatchingStrings) {
-            Matcher matcher = pattern.matcher(str);
-            assertFalse(matcher.matches(), "Expected string not to match: " + str);
+            Matcher matcher = pattern.matcher(str)
+            assertFalse(matcher.matches(), "Expected string not to match: " + str)
         }
     }
 
@@ -659,6 +668,180 @@ class RemediationApplicationIntegrationTest {
                         .sorted().collect(Collectors.toList()))
     }
 
+    List<Document> getFilesDataForStatsCalculation() {
+        return Arrays.asList(
+                new Document("sid", "sid211").append("fid", "fid211").append("fname", "fname211")
+                        .append("samp", new Document("samp211", 0).append("samp212", 1).append("samp213", 2)),
+                // multiple entries for fid212 in the files collection
+                new Document("sid", "sid211").append("fid", "fid212").append("fname", "fname2121")
+                        .append("samp", new Document("samp121", 0).append("samp122", 1)).append("samp123", 2),
+                new Document("sid", "sid211").append("fid", "fid212").append("fname", "fname2122")
+                        .append("samp", new Document("samp121", 0).append("samp122", 1)).append("samp123", 2),
+
+                new Document("sid", "sid311").append("fid", "fid311").append("fname", "fname311")
+                        .append("samp", new Document("samp311", 0).append("samp312", 1).append("samp313", 2)),
+
+                new Document("sid", "sid411").append("fid", "fid411").append("fname", "fname411")
+                        .append("samp", new Document("samp411", 0).append("samp412", 1).append("samp413", 2)),
+                // multiple entries for fid412 in the files collection
+                new Document("sid", "sid411").append("fid", "fid412").append("fname", "fname4121")
+                        .append("samp", new Document("samp421", 0).append("samp422", 1)).append("samp423", 2),
+                new Document("sid", "sid411").append("fid", "fid412").append("fname", "fname4122")
+                        .append("samp", new Document("samp421", 0).append("samp422", 1)).append("samp423", 2),
+
+        )
+    }
+
+    List<Document> getVariantsDataForStatsCalculation() {
+        List<Document> variantDocumentList = new ArrayList<>()
+
+        // case id collision - all sid and fid are different
+        // variant with uppercase ref and alt
+        List<Document> hgvs21 = Arrays.asList(new Document("type", "genomic").append("name", "chr2:g.22222222A>G"))
+        List<Document> files21 = Arrays.asList(
+                // should calculate stats for this
+                new Document("sid", "sid211").append("fid", "fid211")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))),
+                // should not calculate stats for this as no entry for sid411 in the files collections
+                new Document("sid", "sid611").append("fid", "fid611")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))))
+        // variant stats has random entries - should be replaced with sensible calculated values
+        List<Document> stats21 = Arrays.asList(getVariantStats("sid211", "fid211", 999, 999, "A", "0/0"),
+                getVariantStats("sid311", "fid311", 999, 999, "A", "0/0"),
+                getVariantStats("sid611", "fid611", 999, 999, "A", "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.SNV.toString(), "chr2", "A", "G",
+                22222222, 22222222, 1, hgvs21, files21, stats21))
+
+        // variant with lowercase ref and alt
+        List<Document> hgvs22 = Arrays.asList(new Document("type", "genomic").append("name", "chr2:g.22222222a>g"))
+        List<Document> files22 = Arrays.asList(
+                // should calculate stats for this
+                new Document("sid", "sid311").append("fid", "fid311")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))),
+                // should not calculate for this as sid 211 and fid 212 has multiple entries in the files collection
+                new Document("sid", "sid211").append("fid", "fid212")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))))
+        List<Document> stats22 = Arrays.asList(getVariantStats("sid311", "fid311", 888, 888, "a", "0/0"),
+                getVariantStats("sid312", "fid312", 999, 999, "a", "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.SNV.toString(), "chr2", "a", "g",
+                22222222, 22222222, 1, hgvs22, files22, stats22))
+
+
+        // case id collision - all sid and fid are different
+        // variant with uppercase ref and alt
+        List<Document> hgvs41 = Arrays.asList(new Document("type", "genomic").append("name", "chr4:g.44444444A>G"))
+        List<Document> files41 = Arrays.asList(
+                // should calculate stats for this
+                new Document("sid", "sid411").append("fid", "fid411")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))),
+                // should not calculate stats for this as no entry for sid811 in the files collections
+                new Document("sid", "sid811").append("fid", "fid811")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))))
+        // variant stats has random entries - should be replaced with sensible calculated values
+        List<Document> stats41 = Arrays.asList(getVariantStats("sid411", "fid411", 999, 999, "A", "0/0"),
+                getVariantStats("sid411", "fid411", 999, 999, "A", "0/0"),
+                getVariantStats("sid611", "fid611", 999, 999, "A", "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.SNV.toString(), "chr4", "A", "G",
+                44444444, 44444444, 1, hgvs41, files41, stats41))
+
+        // variant with lowercase ref and alt
+        List<Document> hgvs42 = Arrays.asList(new Document("type", "genomic").append("name", "chr4:g.44444444a>g"))
+        List<Document> files42 = Arrays.asList(
+                // should calculate stats for this
+                new Document("sid", "sid311").append("fid", "fid311")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))),
+                // should not calculate for this as sid 211 and fid 212 has multiple entries in the files collection
+                new Document("sid", "sid411").append("fid", "fid412")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))),
+                new Document("sid", "sid411").append("fid", "fid411")
+                        .append("samp", new Document("def", "0|0").append("0|1", Arrays.asList(1))))
+        List<Document> stats42 = Arrays.asList(getVariantStats("sid411", "fid411", 888, 888, "a", "0/0"),
+                getVariantStats("sid412", "fid412", 999, 999, "a", "0/0"))
+        variantDocumentList.add(getVariantDocument(Variant.VariantType.SNV.toString(), "chr4", "a", "g",
+                44444444, 44444444, 1, hgvs42, files42, stats42))
+
+
+        return variantDocumentList
+    }
+
+
+    void qcTestWithStatsCalculation(MongoTemplate mongoTemplate, String workingDir, String dbName) {
+        // case merge all sid fid are different
+        List<VariantDocument> variantsList = mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION)
+                .find(Filters.eq("_id", buildVariantId("chr2", 22222222, "A", "G"))).into([])
+                .stream().map(doc -> mongoTemplate.getConverter().read(VariantDocument.class, doc))
+                .collect(Collectors.toList())
+        assertEquals(1, variantsList.size())
+
+        Set<VariantStatsMongo> variantStatsList = variantsList.get(0).getVariantStatsMongo()
+        assertEquals(2, variantStatsList.size())
+
+        // assert the newly calculated stats
+        VariantStatsMongo variantStatsForSid211Fid211 = variantStatsList.stream()
+                .filter(st -> st.getStudyId().equals("sid211") && st.getFileId().equals("fid211"))
+                .findFirst().get()
+        Map<String, Integer> numOfGT = variantStatsForSid211Fid211.getNumGt()
+        assertEquals(2, numOfGT.get("0|0"))
+        assertEquals(1, numOfGT.get("0|1"))
+        assertEquals(0.1666666716337204f, variantStatsForSid211Fid211.getMaf())
+        assertEquals(0.3333333432674408f, variantStatsForSid211Fid211.getMgf())
+        assertEquals("G", variantStatsForSid211Fid211.getMafAllele())
+        assertEquals("0|1", variantStatsForSid211Fid211.getMgfGenotype())
+        assertEquals(0, variantStatsForSid211Fid211.getMissingAlleles())
+        assertEquals(0, variantStatsForSid211Fid211.getMissingGenotypes())
+
+        VariantStatsMongo variantStatsForSid311Fid311 = variantStatsList.stream()
+                .filter(st -> st.getStudyId().equals("sid311") && st.getFileId().equals("fid311"))
+                .findFirst().get()
+        numOfGT = variantStatsForSid311Fid311.getNumGt()
+        assertEquals(2, numOfGT.get("0|0"))
+        assertEquals(1, numOfGT.get("0|1"))
+        assertEquals(0.1666666716337204f, variantStatsForSid311Fid311.getMaf())
+        assertEquals(0.3333333432674408f, variantStatsForSid311Fid311.getMgf())
+        assertEquals("G", variantStatsForSid311Fid311.getMafAllele())
+        assertEquals("0|1", variantStatsForSid311Fid311.getMgfGenotype())
+        assertEquals(0, variantStatsForSid311Fid311.getMissingAlleles())
+        assertEquals(0, variantStatsForSid311Fid311.getMissingGenotypes())
+
+
+        // case merge common sid fid has only one entry in the files collections
+
+        variantsList = mongoTemplate.getCollection(RemediationApplication.VARIANTS_COLLECTION)
+                .find(Filters.eq("_id", buildVariantId("chr4", 44444444, "A", "G"))).into([])
+                .stream().map(doc -> mongoTemplate.getConverter().read(VariantDocument.class, doc))
+                .collect(Collectors.toList())
+        assertEquals(1, variantsList.size())
+
+        variantStatsList = variantsList.get(0).getVariantStatsMongo()
+        assertEquals(2, variantStatsList.size())
+
+        // assert the newly calculated stats
+        VariantStatsMongo variantStatsForSid411Fid411 = variantStatsList.stream()
+                .filter(st -> st.getStudyId().equals("sid411") && st.getFileId().equals("fid411"))
+                .findFirst().get()
+        numOfGT = variantStatsForSid411Fid411.getNumGt()
+        assertEquals(2, numOfGT.get("0|0"))
+        assertEquals(1, numOfGT.get("0|1"))
+        assertEquals(0.1666666716337204f, variantStatsForSid411Fid411.getMaf())
+        assertEquals(0.3333333432674408f, variantStatsForSid411Fid411.getMgf())
+        assertEquals("G", variantStatsForSid411Fid411.getMafAllele())
+        assertEquals("0|1", variantStatsForSid411Fid411.getMgfGenotype())
+        assertEquals(0, variantStatsForSid411Fid411.getMissingAlleles())
+        assertEquals(0, variantStatsForSid411Fid411.getMissingGenotypes())
+
+        variantStatsForSid311Fid311 = variantStatsList.stream()
+                .filter(st -> st.getStudyId().equals("sid311") && st.getFileId().equals("fid311"))
+                .findFirst().get()
+        numOfGT = variantStatsForSid311Fid311.getNumGt()
+        assertEquals(2, numOfGT.get("0|0"))
+        assertEquals(1, numOfGT.get("0|1"))
+        assertEquals(0.1666666716337204f, variantStatsForSid311Fid311.getMaf())
+        assertEquals(0.3333333432674408f, variantStatsForSid311Fid311.getMgf())
+        assertEquals("G", variantStatsForSid311Fid311.getMafAllele())
+        assertEquals("0|1", variantStatsForSid311Fid311.getMgfGenotype())
+        assertEquals(0, variantStatsForSid311Fid311.getMissingAlleles())
+        assertEquals(0, variantStatsForSid311Fid311.getMissingGenotypes())
+    }
 
     Document getFileDocument(String sid, String fid, String fileName) {
         return new Document().append("sid", sid).append("fid", fid).append("fname", fileName)
@@ -703,7 +886,7 @@ class RemediationApplicationIntegrationTest {
             }
         }
 
-        builder.append("_");
+        builder.append("_")
         if (!alternate.equals("-")) {
             if (alternate.length() < 50) {
                 builder.append(alternate)
