@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper
@@ -51,9 +52,10 @@ new SpringApplicationBuilder(RemediationApplication.class).properties([
         .run(options.workingDir, options.dbName)
 
 
-@SpringBootApplication
+@SpringBootApplication(exclude = [DataSourceAutoConfiguration.class])
 class RemediationApplication implements CommandLineRunner {
     private static Logger logger = LoggerFactory.getLogger(RemediationApplication.class)
+    private static long counter = 0
 
     public static final String VARIANTS_COLLECTION = "variants_2_0"
     public static final String FILES_COLLECTION = "files_2_0"
@@ -89,6 +91,8 @@ class RemediationApplication implements CommandLineRunner {
 
         // Iterate through each variant one by one
         while (mongoCursor.hasNext()) {
+            counter++
+            logger.info("Processing Variant {}", counter)
             // read the variant as a VariantDocument
             VariantDocument lowercaseVariant = mongoTemplate.getConverter().read(VariantDocument.class, mongoCursor.next())
             logger.info("Processing Variant: {}", lowercaseVariant)
@@ -162,7 +166,7 @@ class RemediationApplication implements CommandLineRunner {
         }
 
         // Finished processing
-        return
+        System.exit(0)
     }
 
     void remediateCaseNoIdCollision(VariantDocument lowercaseVariant, String newId) {
