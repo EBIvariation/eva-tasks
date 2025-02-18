@@ -16,7 +16,7 @@ class NormalisationTest {
     @Before
     void setUp() throws Exception {
         processor = new NormalisationProcessor(Paths.get(
-                NormalisationTest.class.getResource("/fasta/homo_sapiens/GCA_000001405.15/GCA_000001405.15.fa").toURI()))
+                NormalisationTest.class.getResource("/fasta/homo_sapiens/GCA_000001405.29/GCA_000001405.29.fa").toURI()))
     }
 
     @After
@@ -78,7 +78,7 @@ class NormalisationTest {
     }
 
     void runBcfToolsNorm() {
-        def fastaPath = NormalisationTest.class.getResource("/fasta/homo_sapiens/GCA_000001405.15/GCA_000001405.15.fa").toString().substring(5)
+        def fastaPath = NormalisationTest.class.getResource("/fasta/homo_sapiens/GCA_000001405.29/GCA_000001405.29.fa").toString().substring(5)
         def inputVcfPath = NormalisationTest.class.getResource("/test_before_norm.vcf").toString().substring(5)
         def outputVcfPath = "test_after_norm.vcf"
 

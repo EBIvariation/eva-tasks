@@ -81,7 +81,7 @@ class RemediationApplication implements CommandLineRunner {
 
         def (fastaPath, assemblyReportPath) = getFastaAndReportPaths(fastaDir, dbName)
         normaliser = new NormalisationProcessor(fastaPath)
-        contigRenamer = new ContigRenamingProcessor(assemblyReportPath)
+        contigRenamer = new ContigRenamingProcessor(assemblyReportPath, dbName)
 
         populateFilesIdAndNumberOfSamplesMap()
 
@@ -182,7 +182,14 @@ class RemediationApplication implements CommandLineRunner {
 
         // Convert the contig name to INSDC
         // Used ONLY in normalisation, the original contig name will be retained in the DB
-        String insdcContig = contigRenamer.getInsdcAccession(originalVariant.getChromosome())
+        String insdcContig
+        try {
+            insdcContig = contigRenamer.getInsdcAccession(originalVariant.getChromosome())
+        } catch (ContigNotFoundException e) {
+            // Log and bypass these errors
+            logger.error("Bypassing ContigNotFoundException {}", e.getMessage())
+            return
+        }
 
         // Normalise all alleles and truncate common leading context allele if present
         ValuesForNormalisation normalisedValues = normaliser.normaliseAndTruncate(insdcContig,
@@ -435,7 +442,10 @@ class RemediationApplication implements CommandLineRunner {
 
     static Tuple2 getFastaAndReportPaths(String fastaDir, String dbName) {
         // Get path to FASTA file and assembly report based on dbName
-        def (eva, taxonomyCode, assemblyCode) = dbName.split("_")
+        // Assembly code is allowed to have underscores, e.g. eva_bbubalis_uoa_wb_1
+        def dbNameParts = dbName.split("_")
+        String taxonomyCode = dbNameParts[1]
+        String assemblyCode = String.join("_", dbNameParts[2..-1])
         String scientificName = null
         String assemblyAccession = null
 
@@ -443,9 +453,11 @@ class RemediationApplication implements CommandLineRunner {
         def results = jsonParser.parse(new URL("https://www.ebi.ac.uk/eva/webservices/rest/v1/meta/species/list"))["response"]["result"][0]
         for (Map<String, String> result: results) {
             if (result["assemblyCode"] == assemblyCode && result["taxonomyCode"] == taxonomyCode) {
-                scientificName = result["taxonomyScientificName"].toLowerCase().replace(" ", "_")
-                assemblyAccession = result["assemblyAccession"]
-                break
+                // Choose most recent patch when multiple assemblies have the same assembly code
+                if (assemblyAccession == null || result["assemblyAccession"] > assemblyAccession) {
+                    scientificName = result["taxonomyScientificName"].toLowerCase().replace(" ", "_")
+                    assemblyAccession = result["assemblyAccession"]
+                }
             }
         }
         if (scientificName == null || assemblyAccession == null) {

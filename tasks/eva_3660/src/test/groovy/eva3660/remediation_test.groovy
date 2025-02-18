@@ -140,9 +140,13 @@ class RemediationApplicationIntegrationTest {
     @Test
     void testGetFastaAndReportPaths() {
         assertEquals(new Tuple2(
-                Paths.get("/path/to/fasta/mus_musculus/GCA_000001635.2/GCA_000001635.2.fa"),
-                Paths.get("/path/to/fasta/mus_musculus/GCA_000001635.2/GCA_000001635.2_assembly_report.txt")),
+                Paths.get("/path/to/fasta/mus_musculus/GCA_000001635.8/GCA_000001635.8.fa"),
+                Paths.get("/path/to/fasta/mus_musculus/GCA_000001635.8/GCA_000001635.8_assembly_report.txt")),
                 RemediationApplication.getFastaAndReportPaths("/path/to/fasta", "eva_mmusculus_grcm38"))
+        assertEquals(new Tuple2(
+                Paths.get("/path/to/fasta/bubalus_bubalis/GCA_003121395.1/GCA_003121395.1.fa"),
+                Paths.get("/path/to/fasta/bubalus_bubalis/GCA_003121395.1/GCA_003121395.1_assembly_report.txt")),
+                RemediationApplication.getFastaAndReportPaths("/path/to/fasta", "eva_bbubalis_uoa_wb_1"))
     }
 
     @Test
