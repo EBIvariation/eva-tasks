@@ -230,8 +230,20 @@ class RemediationApplication implements CommandLineRunner {
                                           BulkOperations variantOps) {
         // check if new id is present in db and get the corresponding variant
         Query idQuery = new Query(where("_id").is(remediatedId))
-        VariantDocument variantInDB = mongoTemplate.findOne(idQuery, VariantDocument.class, VARIANTS_COLLECTION)
-
+        MongoCollection<VariantDocument> variantsColl = mongoTemplate.getCollection(VARIANTS_COLLECTION)
+        def mongoCursor = variantsColl.find(idQuery.getQueryObject()).iterator()
+        VariantDocument variantInDB = null;
+        if (mongoCursor.hasNext()) {
+            Document document = mongoCursor.next()
+            try {
+                variantInDB = mongoTemplate.getConverter().read(VariantDocument.class, document)
+            } catch (Exception e) {
+                logger.error(
+                        "Cannot remediate because the Merge target exists but cannot be converted to a Variant Document" +
+                                document.toString())
+                return false
+            }
+        }
         // Check if there exists a variant in db that has the same id as newID, OR if the new ID is the same as the
         // original (which will subsequently be removed)
         if (variantInDB == null || remediatedId.equals(originalId)) {
