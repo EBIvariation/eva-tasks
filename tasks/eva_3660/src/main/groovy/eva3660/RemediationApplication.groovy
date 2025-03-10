@@ -22,6 +22,7 @@ import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
+import uk.ac.ebi.eva.accession.core.exceptions.PositionOutsideOfContigException
 import uk.ac.ebi.eva.commons.models.data.Variant
 import uk.ac.ebi.eva.commons.models.data.VariantSourceEntity
 import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
@@ -125,8 +126,22 @@ class RemediationApplication implements CommandLineRunner {
             // This also means that potentially more than one normalised document might be generated from one original
             // document, as the final normalised ID might differ depending on the secondary alternates.
             Map<String, VariantDocument> variantIdToDocument = [:]
-            for (VariantSourceEntryMongo variantSource : originalVariant.getVariantSources()) {
-                remediateVariantForFile(originalVariant, variantSource, variantIdToDocument)
+            try {
+                for (VariantSourceEntryMongo variantSource : originalVariant.getVariantSources()) {
+                    remediateVariantForFile(originalVariant, variantSource, variantIdToDocument)
+                }
+            } catch (PositionOutsideOfContigException ex){
+                String projectList = originalVariant.getVariantSources().stream()
+                        .map(vse -> vse.getStudyId())
+                        .collect(Collectors.toSet())
+                        .stream()
+                        .collect(Collectors.joining(","));
+
+                logger.error("Variant is located outside of the chromosome boundaries. _id: {} chr: {} start: {} " +
+                        "ref: {} alt: {} Projects: {}",
+                        originalVariant.getId(), originalVariant.getChromosome(), originalVariant.getStart(),
+                        originalVariant.getReference(), originalVariant.getAlternate(), projectList)
+                continue
             }
             if (variantIdToDocument.isEmpty()) {
                 logger.info("No remediated documents, skipping")
@@ -230,8 +245,20 @@ class RemediationApplication implements CommandLineRunner {
                                           BulkOperations variantOps) {
         // check if new id is present in db and get the corresponding variant
         Query idQuery = new Query(where("_id").is(remediatedId))
-        VariantDocument variantInDB = mongoTemplate.findOne(idQuery, VariantDocument.class, VARIANTS_COLLECTION)
-
+        MongoCollection<VariantDocument> variantsColl = mongoTemplate.getCollection(VARIANTS_COLLECTION)
+        def mongoCursor = variantsColl.find(idQuery.getQueryObject()).iterator()
+        VariantDocument variantInDB = null;
+        if (mongoCursor.hasNext()) {
+            Document document = mongoCursor.next()
+            try {
+                variantInDB = mongoTemplate.getConverter().read(VariantDocument.class, document)
+            } catch (Exception e) {
+                logger.error(
+                        "Cannot remediate because the Merge target exists but cannot be converted to a Variant Document" +
+                                document.toString())
+                return false
+            }
+        }
         // Check if there exists a variant in db that has the same id as newID, OR if the new ID is the same as the
         // original (which will subsequently be removed)
         if (variantInDB == null || remediatedId.equals(originalId)) {
