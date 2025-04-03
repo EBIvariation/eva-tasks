@@ -1,0 +1,41 @@
+# Assembly name:  Felis_catus_9.0
+# Organism name:  Felis catus (domestic cat)
+# Infraspecific name:  breed=Abyssinian
+# Isolate:  Cinnamon
+# Sex:  female
+# Taxid:          9685
+# BioSample:      SAMN02953640
+# BioProject:     PRJNA16726
+# Submitter:      Genome Sequencing Center (GSC) at Washington University (WashU) School of Medicine
+# Date:           2017-11-20
+# Synonyms:       felCat9	
+# Assembly type:  haploid
+# Release type:   major
+# Assembly level: Chromosome
+# Genome representation: full
+# WGS project:    AANG04
+# Assembly method: WTDBG v. 1.2, Chromonomer v. 1.0.7
+# Genome coverage: 72x
+# Sequencing technology: PacBio; 454 Titanium; Illumina; Sanger dideoxy sequencing
+# RefSeq category: Representative Genome
+# GenBank assembly accession: GCA_000181335.4
+# RefSeq assembly accession: GCF_000181335.3
+# RefSeq assembly and GenBank assemblies identical: no
+#
+## Assembly-Units:
+## GenBank Unit Accession	RefSeq Unit Accession	Assembly-Unit name
+## GCA_000181345.4	GCF_000181345.3	Primary Assembly
+## 	GCF_000029335.1	non-nuclear
+#
+# Ordered by chromosome/plasmid; the chromosomes/plasmids are followed by
+# unlocalized scaffolds.
+# Unplaced scaffolds are listed at the end.
+# RefSeq is equal or derived from GenBank object.
+#
+# Sequence-Name	Sequence-Role	Assigned-Molecule	Assigned-Molecule-Location/Type	GenBank-Accn	Relationship	RefSeq-Accn	Assembly-Unit	Sequence-Length	UCSC-style-name
+chrA1	assembled-molecule	A1	Chromosome	CM001378.3	=	NC_018723.3	Primary Assembly	242100913	chrA1
+chrA2	assembled-molecule	A2	Chromosome	CM001379.3	=	NC_018724.3	Primary Assembly	171471747	chrA2
+chrA3	assembled-molecule	A3	Chromosome	CM001380.3	=	NC_018725.3	Primary Assembly	143202405	chrA3
+chrB1	assembled-molecule	B1	Chromosome	CM001381.3	=	NC_018726.3	Primary Assembly	208212889	chrB1
+chrB2	assembled-molecule	B2	Chromosome	CM001382.3	=	NC_018727.3	Primary Assembly	155302638	chrB2
+chrB3	assembled-molecule	B3	Chromosome	CM001383.3	=	NC_018728.3	Primary Assembly	149751809	chrB3
