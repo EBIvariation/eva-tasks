@@ -28,7 +28,7 @@ class UpdateContigNameApplicationTest {
         String resourceDir = "src/test/resources"
         String testPropertiesFile = resourceDir + "/application-test.properties"
         String workingDir = resourceDir + "/test_run"
-        String assemblyReportPath = "file:" + new File(resourceDir + "/assembly_report.txt").getAbsolutePath()
+        String assemblyReportDir = resourceDir
         File variantsWithIssuesFile = new File(Paths.get(workingDir, "/Variants_With_Issues/", testDBName + ".txt").toString())
 
         // Removing existing data and setup DB with test Data
@@ -56,7 +56,7 @@ class UpdateContigNameApplicationTest {
 
         // Run Update
         UpdateContigApplication updateContigApplication = context.getBean(UpdateContigApplication.class)
-        updateContigApplication.run(new String[]{workingDir, testDBName, assemblyReportPath})
+        updateContigApplication.run(new String[]{workingDir, testDBName, assemblyReportDir})
 
         // Run QC
         qcMethod.call(mongoTemplate, workingDir, testDBName)
@@ -83,7 +83,7 @@ class UpdateContigNameApplicationTest {
 
     @Test
     void testUpdateContigNameWithDifferentCases() {
-        String testDBName = "test_update_contig_name_db_different_cases"
+        String testDBName = "eva_fcatus_80"
         List<Document> filesData = getFilesDataForDifferentTestCases()
         List<Document> variantsData = getVariantsDataForDifferentTestCases()
         List<Document> annotationsData = getAnnotationsDataForDifferentTestCases()
@@ -92,14 +92,14 @@ class UpdateContigNameApplicationTest {
 
     @Test
     void testUpdateContigNameHgvsNotPresent() {
-        String testDBName = "test_update_contig_name_db_hgvs_not_present"
+        String testDBName = "eva_fcatus_80"
         List<Document> variantsData = getVariantsDataForHgvsNotPresent()
         setUpEnvAndRunApplicationWithQC(testDBName, new ArrayList<>(), variantsData, new ArrayList<>(), this.&qcTestNoHgvsPresent)
     }
 
     @Test
     void testUpdateContigNameCalculateStats() {
-        String testDBName = "test_update_contig_name_db_stat_calculation"
+        String testDBName = "eva_fcatus_80"
         List<Document> filesData = getFilesDataForStatsCalculation()
         List<Document> variantsData = getVariantsDataForStatsCalculation()
         setUpEnvAndRunApplicationWithQC(testDBName, filesData, variantsData, new ArrayList<>(), this.&qcTestWithStatsCalculation)
