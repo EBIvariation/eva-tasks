@@ -26,9 +26,7 @@ import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
 import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantSourceEntryMongo
 import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantStatsMongo
 import uk.ac.ebi.eva.commons.mongodb.entities.subdocuments.HgvsMongo
-import uk.ac.ebi.eva.pipeline.io.AssemblyReportReader
-import uk.ac.ebi.eva.pipeline.io.contig.ContigMapping
-import uk.ac.ebi.eva.pipeline.io.contig.ContigSynonyms
+
 
 import java.nio.file.Paths
 import java.util.regex.Pattern
@@ -71,7 +69,7 @@ class UpdateContigApplication implements CommandLineRunner {
     MongoTemplate mongoTemplate
 
     MappingMongoConverter converter
-    ContigMapping contigMapping
+    ContigRenamingProcessor contigRenamer
     String variantsWithIssuesFilePath
 
     private static Map<String, Integer> sidFidNumberOfSamplesMap = new HashMap<>()
@@ -102,7 +100,7 @@ class UpdateContigApplication implements CommandLineRunner {
         def (fastaPath, assemblyReportPath) = getFastaAndReportPaths(assemblyReportDir, dbName)
 
         // load assembly report for contig mapping
-        contigMapping = new ContigMapping(new AssemblyReportReader("file:" + assemblyReportPath.toString()))
+        contigRenamer = new ContigRenamingProcessor(assemblyReportPath, dbName)
 
         // Obtain a MongoCursor to iterate through documents
         def mongoCursor = mongoTemplate.getCollection(VARIANTS_COLLECTION)
@@ -151,7 +149,7 @@ class UpdateContigApplication implements CommandLineRunner {
         }
 
         // Finished processing
-         System.exit(0)
+        System.exit(0)
     }
 
     void processVariantBatch(List<VariantDocument> variantDocumentList) {
@@ -165,15 +163,14 @@ class UpdateContigApplication implements CommandLineRunner {
             Map<String, String> orgVariantInsdcChrMap = variantDocumentList.stream()
                     .collect(Collectors.toMap(orgVariant -> orgVariant.getId(), orgVariant -> {
                         String orgChromosome = orgVariant.getChromosome()
-                        StringBuilder reason = new StringBuilder()
-                        ContigSynonyms contigSynonyms = contigMapping.getContigSynonyms(orgChromosome)
-                        if (contigMapping.isGenbankReplacementPossible(orgChromosome, contigSynonyms, reason)) {
-                            return contigSynonyms.getGenBank()
-                        } else {
+                        try {
+                            return contigRenamer.getInsdcAccession(orgChromosome)
+                        } catch (ContigNotFoundException e) {
+                            // Log and bypass these errors
                             logger.error("Could not get INSDC accession for variant {} with chromosome. Reason: {}", orgVariant.getId(),
                                     orgVariant.getChromosome(), reason)
-
-                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, orgVariant.getId(), "", "Could not get INSDC accession for Chromosome " + orgChromosome)
+                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, orgVariant.getId(), "",
+                                    "Could not get INSDC accession for Chromosome " + orgChromosome)
                             return null
                         }
                     }))
@@ -219,7 +216,7 @@ class UpdateContigApplication implements CommandLineRunner {
                 String newId = orgVariantNewIdMap.get(orgVariant.getId())
 
                 // check if id already processed in the loop (in mem id collision)
-                if(idProcessed.contains(newId)){
+                if (idProcessed.contains(newId)) {
                     processInNextLoop.add(orgVariant)
                     continue
                 }
@@ -488,7 +485,7 @@ class UpdateContigApplication implements CommandLineRunner {
                         String orgAnnotationId = annotation.getString("_id")
                         String updatedAnnotationId = orgAnnotationId.replace(orgVariantId, newVariantId)
                         if (!updatedAnnotationIdSet.contains(updatedAnnotationId)) {
-                            if(!idProcessed.contains(updatedAnnotationId)){
+                            if (!idProcessed.contains(updatedAnnotationId)) {
                                 Document updated = new Document(annotation)
                                 updated.put("_id", updatedAnnotationId)
 
@@ -576,7 +573,7 @@ class UpdateContigApplication implements CommandLineRunner {
 
         JsonSlurper jsonParser = new JsonSlurper()
         def results = jsonParser.parse(new URL("https://www.ebi.ac.uk/eva/webservices/rest/v1/meta/species/list"))["response"]["result"][0]
-        for (Map<String, String> result: results) {
+        for (Map<String, String> result : results) {
             if (result["assemblyCode"] == assemblyCode && result["taxonomyCode"] == taxonomyCode) {
                 // Choose most recent patch when multiple assemblies have the same assembly code
                 if (assemblyAccession == null || result["assemblyAccession"] > assemblyAccession) {
