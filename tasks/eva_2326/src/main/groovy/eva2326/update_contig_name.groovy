@@ -167,8 +167,8 @@ class UpdateContigApplication implements CommandLineRunner {
                             return contigRenamer.getInsdcAccession(orgChromosome)
                         } catch (ContigNotFoundException e) {
                             // Log and bypass these errors
-                            logger.error("Could not get INSDC accession for variant {} with chromosome. Reason: {}", orgVariant.getId(),
-                                    orgVariant.getChromosome(), reason)
+                            logger.error("Could not get INSDC accession for variant {} with chromosome {}. Exception Message: {}", orgVariant.getId(),
+                                    orgVariant.getChromosome(), e.getMessage())
                             storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, orgVariant.getId(), "",
                                     "Could not get INSDC accession for Chromosome " + orgChromosome)
                             return null
