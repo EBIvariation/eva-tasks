@@ -338,17 +338,9 @@ class UpdateContigApplication implements CommandLineRunner {
 
     VariantDocument remediateCaseNoIdCollision(VariantDocument orgVariant, String newId, String updatedChromosome) {
         Map<String, Set<String>> updatedHgvs = getUpdatedHgvs(orgVariant, updatedChromosome)
-        Set<VariantSourceEntryMongo> updatedSourceEntries = orgVariant.getVariantSources().stream()
-                .peek(vse -> {
-                    if (vse.getAttrs() != null) {
-                        vse.getAttrs().append("CHR", updatedChromosome)
-                    }
-                })
-                .collect(Collectors.toSet())
-
         VariantDocument updatedVariant = new VariantDocument(orgVariant.getVariantType(), updatedChromosome,
                 orgVariant.getStart(), orgVariant.getEnd(), orgVariant.getLength(), orgVariant.getReference(),
-                orgVariant.getAlternate(), updatedHgvs, orgVariant.getIds(), updatedSourceEntries)
+                orgVariant.getAlternate(), updatedHgvs, orgVariant.getIds(), orgVariant.getVariantSources())
         updatedVariant.setStats(orgVariant.getVariantStatsMongo())
 
         return updatedVariant
@@ -358,17 +350,11 @@ class UpdateContigApplication implements CommandLineRunner {
                                                        String updatedChromosome) {
         List<Bson> updateOperations = new ArrayList<>()
 
-        Set<VariantSourceEntryMongo> updatedFiles = orgVariant.getVariantSources().stream()
-                .peek(vse -> {
-                    if (vse.getAttrs() != null) {
-                        vse.getAttrs().append("CHR", updatedChromosome)
-                    }
-                })
-                .collect(Collectors.toSet())
+        Set<VariantSourceEntryMongo> variantSourceFiles = orgVariant.getVariantSources()
         Set<VariantStatsMongo> variantStats = variantStatsProcessor.process(variantInDB.getReference(),
-                variantInDB.getAlternate(), variantInDB.getVariantSources(), updatedFiles, sidFidNumberOfSamplesMap)
+                variantInDB.getAlternate(), variantInDB.getVariantSources(), variantSourceFiles, sidFidNumberOfSamplesMap)
 
-        updateOperations.add(Updates.push("files", new Document("\$each", updatedFiles.stream()
+        updateOperations.add(Updates.push("files", new Document("\$each", variantSourceFiles.stream()
                 .map(file -> mongoTemplate.getConverter().convertToMongoType(file))
                 .collect(Collectors.toList()))))
         updateOperations.add(Updates.set("st", variantStats.stream()
@@ -399,18 +385,10 @@ class UpdateContigApplication implements CommandLineRunner {
         Set<VariantSourceEntryMongo> candidateFiles = orgVariant.getVariantSources().stream()
                 .filter(vse -> sidFidPairNotInDB.contains(new Pair(vse.getStudyId(), vse.getFileId())))
                 .collect(Collectors.toSet())
-        Set<VariantSourceEntryMongo> updatedFiles = candidateFiles.stream()
-                .peek(vse -> {
-                    if (vse.getAttrs() != null) {
-                        vse.getAttrs().append("CHR", updatedChromosome)
-                    }
-                })
-                .collect(Collectors.toSet())
-
         Set<VariantStatsMongo> variantStats = variantStatsProcessor.process(variantInDB.getReference(),
-                variantInDB.getAlternate(), variantInDB.getVariantSources(), updatedFiles, sidFidNumberOfSamplesMap)
+                variantInDB.getAlternate(), variantInDB.getVariantSources(), candidateFiles, sidFidNumberOfSamplesMap)
 
-        updateOperations.add(Updates.push("files", new Document("\$each", updatedFiles.stream()
+        updateOperations.add(Updates.push("files", new Document("\$each", candidateFiles.stream()
                 .map(file -> mongoTemplate.getConverter().convertToMongoType(file))
                 .collect(Collectors.toList()))))
         updateOperations.add(Updates.set("st", variantStats.stream()
