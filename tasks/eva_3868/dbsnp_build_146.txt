@@ -1,0 +1,69 @@
+Dec 15 2015
+dbSNP Build 146 data for corn, cow, dog, rat, chickpea, and barrel medic  available now on the web and FTP .
+
+
+organism:     Bos taurus
+tax_id:       9913
+common_name:  cow
+assembly:     Bos_taurus_UMD_3.1.1 (GCF_000003055.6)
+total_ss_cnt: 293824705
+total_rs_cnt: 99547043
+new_ss_cnt:   58867483
+new_rs_cnt:   4364991
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cow_9913
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9913
+
+organism:     Zea mays
+tax_id:       4577
+common_name:  corn
+assembly:     B73_RefGen_v3 (GCF_000005005.1)
+total_ss_cnt: 71409972
+total_rs_cnt: 54251824
+new_ss_cnt:   57625575
+new_rs_cnt:   43725045
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/corn_4577
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4577
+
+organism:     Canis familiaris
+tax_id:       9615
+common_name:  dog
+assembly:     CanFam3.1 (GCF_000002285.3)
+total_ss_cnt: 7436723
+total_rs_cnt: 5932939
+new_ss_cnt:   3904945
+new_rs_cnt:   2669816
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/dog_9615
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9615
+
+organism:     Rattus norvegicus
+tax_id:       10116
+common_name:  rat
+assembly:     Rnor_6.0 (GCF_000001895.5)
+total_ss_cnt: 6473263
+total_rs_cnt: 5075460
+new_ss_cnt:   3
+new_rs_cnt:   2
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rat_10116
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid10116
+
+organism:     Brassica napus
+tax_id:       3708
+common_name:  rapeseeds
+assembly:     Brassica_napus_assembly_v1.0 (GCF_000686985.1)
+total_ss_cnt: 914257
+total_rs_cnt: 901510
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rapeseeds_3708/
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term= txid3708
+
+organism:     Cicer arietinum
+tax_id:       3827
+common_name:  chickpea
+assembly:     ASM33114v1 (GCF_000331145.1)
+total_ss_cnt: 873342
+total_rs_cnt: 519066
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/chickpea_3827
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3827
