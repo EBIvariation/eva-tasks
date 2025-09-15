@@ -1,0 +1,79 @@
+Apr 9 2014
+dbSNP BUILD 140
+===============
+The following organisms are available in dbSNP's build 140 release:
+organism:     Apis mellifera
+tax_id:       7460
+Assembly:     Amel_4.5 (GCF_000002195.4)
+Annotation:   Apis mellifera Annotation Release 102 (GCF_000194595.1)
+total_ss_cnt: 1121589
+total_rs_cnt: 1119078
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/bee_7460
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7460
+organism:     Bos taurus
+tax_id:       9913
+Assembly:     Bos_taurus_UMD_3.1 (GCF_000003055.4)
+Annotation:   Bos taurus Annotation Release 103 (GCF_000004275.3)
+total_ss_cnt: 129352469
+total_rs_cnt: 73518025
+new_ss_cnt:   57360632
+new_rs_cnt:   51447160
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cow_9913
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9913
+
+organism:     Gallus gallus
+tax_id:       9031
+Assembly:     Gallus_gallus-4.0 (GCF_000002315.3)
+Annotation:   Gallus gallus Annotation Release 102 (GCF_000236425.1)
+total_ss_cnt: 32135384
+total_rs_cnt: 9526068
+new_ss_cnt:   19876139
+new_rs_cnt:   70624
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/chicken_9031
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9031
+
+organism:     Glycine max
+tax_id:       3847
+Assembly:     V1.1 (GCF_000004515.3)
+Annotation:   Glycine max Annotation Release 101 (GCF_000512015.1)
+total_ss_cnt: 21588586
+total_rs_cnt: 13087062
+new_ss_cnt:   0
+new_rs_cnt:   981695
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/soybean_3847
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3847
+
+organism:     Oreochromis niloticus
+tax_id:       8128
+Assembly:     Orenil1.1 (GCF_000188235.2)
+Annotation:   Oreochromis niloticus Annotation Release 101 (GCF_000458595.1)
+total_ss_cnt: 340
+total_rs_cnt: 340
+new_ss_cnt:   11
+new_rs_cnt:   11
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/tilapia_8128
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid8128
+
+organism:     Ovis aries
+tax_id:       9940
+Assembly:     Oar_v3.1 (GCF_000298735.1)
+Annotation:   Ovis aries Annotation Release 100 (GCF_000313975.1)
+total_ss_cnt: 35934777
+total_rs_cnt: 35558076
+new_ss_cnt:   33019743
+new_rs_cnt:   32718806
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sheep_9940
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9940
+
+organism:     Sus scrofa
+tax_id:       9823
+Assembly:     Sscrofa10.2 (GCF_000003025.5)
+Annotation:   Sus scrofa Annotation Release 104 (GCF_000226365.1)
+total_ss_cnt: 29090887
+total_rs_cnt: 28702828
+new_ss_cnt:   383
+new_rs_cnt:   95
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/pig_9823
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9823

@@ -1,0 +1,125 @@
+Sep 7 2017
+====================================================================================
+dbSNP Build 150 data for thale cress, chicken, corn, cow, horse, rhesus monkey, mouse, pig, sheep, zebrafish, and zebu are available now on the web and FTP.   Complete listing of organisms and counts are below.
+====================================================================================
+organism:     Arabidopsis thaliana
+tax_id:       3702
+common_name:  thale cress
+assembly:     TAIR10 (GCF_000001735.3)
+total_ss_cnt: 15307574
+total_rs_cnt: 13412809
+new_ss_cnt:   14144402
+new_rs_cnt:   12343212
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/arabidopsis_3702
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3702
+------------------------------------------------------------
+organism:     Gallus gallus
+tax_id:       9031
+common_name:  chicken
+assembly:     Gallus_gallus-5.0 (GCF_000002315.4)
+total_ss_cnt: 73244003
+total_rs_cnt: 24277657
+new_ss_cnt:   15801391
+new_rs_cnt:   2973898
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/chicken_9031
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9031
+------------------------------------------------------------
+organism:     Zea mays
+tax_id:       4577
+common_name:  corn
+assembly:     B73_RefGen_v3 (GCF_000005005.1)
+total_ss_cnt: 86608237
+total_rs_cnt: 58915360
+new_ss_cnt:   14478062
+new_rs_cnt:   4287793
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/corn_4577
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4577
+------------------------------------------------------------
+organism:     Bos taurus
+tax_id:       9913
+common_name:  cow
+assembly:     Bos_taurus_UMD_3.1.1 (GCF_000003055.6)
+total_ss_cnt: 332061559
+total_rs_cnt: 104286568
+new_ss_cnt:   38236814
+new_rs_cnt:   4115916
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cow_9913
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9913
+------------------------------------------------------------
+organism:     Equus caballus
+tax_id:       9796
+common_name:  horse
+assembly:     EquCab2.0 (GCF_000002305.2)
+total_ss_cnt: 5572718
+total_rs_cnt: 5069659
+new_ss_cnt:   147
+new_rs_cnt:   61
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/horse_9796
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9796
+------------------------------------------------------------
+organism:     Macaca mulatta
+tax_id:       9544
+common_name:  rhesus monkey
+assembly:     Mmul_8.0.1 (GCF_000772875.2)
+total_ss_cnt: 95808453
+total_rs_cnt: 53929680
+new_ss_cnt:   60043985
+new_rs_cnt:   20509658
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/macaque_9544
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9544
+------------------------------------------------------------
+organism:     Mus musculus
+tax_id:       10090
+common_name:  mouse
+assembly:     GRCm38.p4 (GCF_000001635.24)
+total_ss_cnt: 189214027
+total_rs_cnt: 84152707
+new_ss_cnt:   53477157
+new_rs_cnt:   3709270
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/mouse_10090
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid10090
+------------------------------------------------------------
+organism:     Sus scrofa
+tax_id:       9823
+common_name:  pig
+assembly:     Sscrofa11.1 (GCF_000003025.6)
+total_ss_cnt: 195656177
+total_rs_cnt: 67116509
+new_ss_cnt:   60179194
+new_rs_cnt:   6754642
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/pig_9823
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9823
+------------------------------------------------------------
+organism:     Ovis aries
+tax_id:       9940
+common_name:  sheep
+assembly:     Oar_v4.0 (GCF_000298735.2)
+total_ss_cnt: 147584937
+total_rs_cnt: 63745118
+new_ss_cnt:   46765481
+new_rs_cnt:   9740710
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sheep_9940
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9940
+------------------------------------------------------------
+organism:     Danio rerio
+tax_id:       7955
+common_name:  zebrafish
+assembly:     GRCz10 (GCF_000002035.5)
+total_ss_cnt: 18618013
+total_rs_cnt: 17765748
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/zebrafish_7955
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7955
+------------------------------------------------------------
+organism:     Bos indicus
+tax_id:       9915
+common_name:  zebu
+assembly:     Bos_indicus_1.0 (GCF_000247795.1)
+total_ss_cnt: 30533959
+total_rs_cnt: 17758946
+new_ss_cnt:   26146632
+new_rs_cnt:   13371846
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/zebu_9915
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9915
+------------------------------------------------------------

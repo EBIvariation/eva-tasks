@@ -1,0 +1,204 @@
+Dec 8 2016
+dbSNP BUILD 149:
+===============
+dbSNP Build 149 data for  human, apple, bony_fish, carrot, collared flycatcher, cotton, eudicots, fruit fly, gray short-tailed opossum, honey bee, platypus, pmajor, quail, rabbit, rat, red_flour_beetle, and turquoise_killifish are available now on the web and FTP .
+===============
+organism:     Homo sapiens
+tax_id:       9606
+common_name:  human
+assembly:     GRCh38.p7 (GCF_000001405.33)
+total_ss_cnt: 557939960
+total_rs_cnt: 154206854
+new_ss_cnt:   12578613
+new_rs_cnt:   252892
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9606
+------------------------------------------------------------
+
+organism:     Malus x domestica
+tax_id:       3750
+common_name:  apple
+assembly:     MalDomGD1.0 (GCF_000148765.1)
+total_ss_cnt: 488100
+total_rs_cnt: 383602
+new_ss_cnt:   465558
+new_rs_cnt:   364719
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/apple_3750
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3750
+------------------------------------------------------------
+organism:     Apis mellifera
+tax_id:       7460
+common_name:  honey bee
+assembly:     Amel_4.5 (GCF_000002195.4)
+total_ss_cnt: 4728309
+total_rs_cnt: 4249090
+new_ss_cnt:   3606720
+new_rs_cnt:   3130012
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/bee_7460
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7460
+------------------------------------------------------------
+organism:     Astyanax mexicanus
+tax_id:       7994
+common_name:  bony_fish
+assembly:     Astyanax_mexicanus-1.0.2 (GCF_000372685.1)
+total_ss_cnt: 737
+total_rs_cnt: 507
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/bony_fish_7994
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7994
+------------------------------------------------------------
+organism:     Daucus carota subsp. sativus
+tax_id:       79200
+common_name:  carrot
+assembly:     ASM162521v1 (GCF_001625215.1)
+total_ss_cnt: 1393425
+total_rs_cnt: 1393307
+new_ss_cnt:   1393425
+new_rs_cnt:   1393307
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/carrot_79200
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid79200
+------------------------------------------------------------
+organism:     Gossypium hirsutum
+tax_id:       3635
+common_name:  cotton
+assembly:     ASM98774v1 (GCF_000987745.1)
+total_ss_cnt: 287419
+total_rs_cnt: 121164
+new_ss_cnt:   248635
+new_rs_cnt:   82382
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cotton_3635
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3635
+------------------------------------------------------------
+organism:     Brassica oleracea
+tax_id:       3712
+common_name:  eudicots
+assembly:     BOL (GCF_000695525.1)
+total_ss_cnt: 625798
+total_rs_cnt: 625798
+new_ss_cnt:   625798
+new_rs_cnt:   625798
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/eudicots_3712
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3712
+------------------------------------------------------------
+organism:     Capsicum annuum
+tax_id:       4072
+common_name:  eudicots
+assembly:     Pepper_Zunla_1_Ref_v1.0 (GCF_000710875.1)
+total_ss_cnt: 23220
+total_rs_cnt: 22848
+new_ss_cnt:   673
+new_rs_cnt:   371
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/eudicots_4072
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4072
+------------------------------------------------------------
+organism:     Ficedula albicollis
+tax_id:       59894
+common_name:  Collared flycatcher
+assembly:     FicAlb1.5 (GCF_000247815.1)
+total_ss_cnt: 41170
+total_rs_cnt: 38529
+new_ss_cnt:   40893
+new_rs_cnt:   38252
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/flycatcher_59894
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid59894
+------------------------------------------------------------
+organism:     Drosophila melanogaster
+tax_id:       7227
+common_name:  fruit fly
+assembly:     Release_6_plus_ISO1_MT (GCF_000001215.4)
+total_ss_cnt: 6966484
+total_rs_cnt: 5620299
+new_ss_cnt:   1726925
+new_rs_cnt:   397516
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/fruitfly_7227
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7227
+------------------------------------------------------------
+organism:     Monodelphis domestica
+tax_id:       13616
+common_name:  gray short-tailed opossum
+assembly:     MonDom5 (GCF_000002295.2)
+total_ss_cnt: 1196103
+total_rs_cnt: 1189350
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/opossum_13616
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid13616
+------------------------------------------------------------
+organism:     Ornithorhynchus anatinus
+tax_id:       9258
+common_name:  platypus
+assembly:     Ornithorhynchus_anatinus_5.0.1 (GCF_000002275.2)
+total_ss_cnt: 1883034
+total_rs_cnt: 1315309
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/platypus_9258
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9258
+------------------------------------------------------------
+organism:     Parus major
+tax_id:       9157
+common_name:  pmajor
+assembly:     Parus_major1.0.3 (GCF_001522545.1)
+total_ss_cnt: 7870
+total_rs_cnt: 7842
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/pmajor_9157
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9157
+------------------------------------------------------------
+organism:     Coturnix japonica
+tax_id:       93934
+common_name:  quail
+assembly:     Coturnix_japonica_2.0 (GCF_001577835.1)
+total_ss_cnt: 16945
+total_rs_cnt: 16298
+new_ss_cnt:   1947
+new_rs_cnt:   1319
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/quail_93934
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid93934
+------------------------------------------------------------
+organism:     Oryctolagus cuniculus
+tax_id:       9986
+common_name:  rabbit
+assembly:     OryCun2.0 (GCF_000003625.3)
+total_ss_cnt: 41
+total_rs_cnt: 38
+new_ss_cnt:   17
+new_rs_cnt:   14
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rabbit_9986
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9986
+------------------------------------------------------------
+organism:     Rattus norvegicus
+tax_id:       10116
+common_name:  rat
+assembly:     Rnor_6.0 (GCF_000001895.5)
+total_ss_cnt: 6473268
+total_rs_cnt: 5075461
+new_ss_cnt:   5
+new_rs_cnt:   1
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rat_10116
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid10116
+------------------------------------------------------------
+organism:     Tribolium castaneum
+tax_id:       7070
+common_name:  red_flour_beetle
+assembly:     Tcas5.2 (GCF_000002335.3)
+total_ss_cnt: 172
+total_rs_cnt: 172
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/red_flour_beetle_7070
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7070
+------------------------------------------------------------
+organism:     Nothobranchius furzeri
+tax_id:       105023
+common_name:  turquoise_killifish
+assembly:     Nfu_20140520 (GCF_001465895.1)
+total_ss_cnt: 324
+total_rs_cnt: 321
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/turquoise_killifish_105023
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid105023
+------------------------------------------------------------

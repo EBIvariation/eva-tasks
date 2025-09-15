@@ -1,0 +1,58 @@
+Aug 15 2013
+Build Summary by Organism
+---------------------------------------------------------------------------------------------------------------------
+organism:	Mus musculus
+tax_id:	10090
+Assembly:	GRCm38.p1 (GCF_000001635.21)
+Annotation:	Mus musculus Annotation Release 103 (GCF_000296565.1)
+total_ss_cnt:	122723771
+total_rs_cnt:	71105894
+new_ss_cnt:	5240636
+new_rs_cnt:	1069044
+FTP:	ftp://ftp.ncbi.nih.gov/snp/organisms/mouse_10090
+Entrez:	http://www.ncbi.nlm.nih.gov/snp/?term=txid10090
+---------------------------------------------------------------------------------------------------------------------
+organism:	Arabidopsis thaliana
+tax_id:	3702
+Assembly:	TAIR10 (GCF_000001735.3)
+Annotation:	Arabidopsis thaliana Annotation Release 101 (GCF_000003475.2)
+total_ss_cnt:	1163172
+total_rs_cnt:	1069597
+new_ss_cnt:	1162871
+new_rs_cnt:	1069296
+FTP:	ftp://ftp.ncbi.nih.gov/snp/organisms/arabidopsis_3702
+Entrez:	http://www.ncbi.nlm.nih.gov/snp/?term=txid3702
+---------------------------------------------------------------------------------------------------------------------
+organism:	Apis mellifera
+tax_id:	7460
+Assembly:	Amel_4.5 (GCF_000002195.4)
+Annotation:	Apis mellifera Annotation Release 101 (GCF_000194595.1)
+total_ss_cnt:	1121589
+total_rs_cnt:	1119078
+new_ss_cnt:	1536
+new_rs_cnt:	995
+FTP:	ftp://ftp.ncbi.nih.gov/snp/organisms/bee_7460
+Entrez:	http://www.ncbi.nlm.nih.gov/snp/?term=txid7460
+---------------------------------------------------------------------------------------------------------------------
+organism:	Caenorhabditis elegans
+tax_id:	6239
+Assembly:	WS195 (GCF_000002985.4)
+Annotation:	Caenorhabditis elegans Annotation Release 101 (GCF_000006465.3)
+total_ss_cnt:	308165
+total_rs_cnt:	192044
+new_ss_cnt:	-40272*
+new_rs_cnt:	-139392*
+FTP:	ftp://ftp.ncbi.nih.gov/snp/organisms/nematode_6239
+Entrez:	http://www.ncbi.nlm.nih.gov/snp/?term=txid6239
+*Decreased due to submission withdrawn.
+---------------------------------------------------------------------------------------------------------------------
+organism:	Oryza sativa
+tax_id:	4530
+Assembly:	Build_4.0 (GCF_000005425.2)
+Annotation:	Oryza sativa Annotation Release 100 (GCF_000234515.1)
+total_ss_cnt:	12571151
+total_rs_cnt:	10966784
+new_ss_cnt:	6698845
+new_rs_cnt:	5607215
+FTP:	ftp://ftp.ncbi.nih.gov/snp/organisms/rice_4530
+Entrez:	http://www.ncbi.nlm.nih.gov/snp/?term=txid4530

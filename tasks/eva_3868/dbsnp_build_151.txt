@@ -1,0 +1,96 @@
+Nov 2 2017
+dbSNP BUILD 149:
+====================================================================================
+dbSNP Build 151 data for chicken, corn, cottonwood, dog, horse, rice, sheep, soybean, and zebu are available now on the web and FTP.   Complete listing of organism summaries is below.
+====================================================================================
+------------------------------------------------------------
+organism: Gallus gallus
+tax_id: 9031
+common_name: chicken
+assembly: Gallus_gallus-5.0 (GCF_000002315.4)
+total_ss_cnt: 73447822
+total_rs_cnt: 24278419
+new_ss_cnt: 0
+new_rs_cnt: 0
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/chicken_9031
+------------------------------------------------------------
+organism: Zea mays
+tax_id: 4577
+common_name: corn
+assembly: B73_RefGen_v4 (GCF_000005005.2)
+total_ss_cnt: 86608237
+total_rs_cnt: 58915360
+new_ss_cnt: 0
+new_rs_cnt: 0
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/corn_4577
+------------------------------------------------------------
+organism: Populus trichocarpa
+tax_id: 3694
+common_name: cottonwood
+assembly: Poptr1_1 (GCF_000002775.1)
+total_ss_cnt: 17902170
+total_rs_cnt: 12499188
+new_ss_cnt: 0
+new_rs_cnt: 2993523
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/cottonwood_3694
+------------------------------------------------------------
+organism: Canis lupus familiaris
+tax_id: 9615
+common_name: dog
+assembly: CanFam3.1 (GCF_000002285.3)
+total_ss_cnt: 7436891
+total_rs_cnt: 5933041
+new_ss_cnt: 168
+new_rs_cnt: 102
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/dog_9615
+------------------------------------------------------------
+organism: Equus caballus
+tax_id: 9796
+common_name: horse
+assembly: EquCab2.0 (GCF_000002305.2)
+total_ss_cnt: 26271691
+total_rs_cnt: 21596592
+new_ss_cnt: 0
+new_rs_cnt: 0
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/horse_9796
+------------------------------------------------------------
+organism: Oryza sativa
+tax_id: 4530
+common_name: rice
+assembly: IRGSP-1.0 (GCF_001433935.1)
+(GCF_001563185.1)
+total_ss_cnt: 18978028
+total_rs_cnt: 13172393
+new_ss_cnt: 232777
+new_rs_cnt: 14108
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/rice_4530
+------------------------------------------------------------
+organism: Ovis aries
+tax_id: 9940
+common_name: sheep
+assembly: Oar_v4.0 (GCF_000298735.2)
+total_ss_cnt: 147585261
+total_rs_cnt: 63745233
+new_ss_cnt: 0
+new_rs_cnt: 0
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/sheep_9940
+------------------------------------------------------------
+organism: Glycine max
+tax_id: 3847
+common_name: soybean
+assembly: Glycine_max_v2.0 (GCF_000004515.4)
+total_ss_cnt: 40787157
+total_rs_cnt: 17738956
+new_ss_cnt: 4074388
+new_rs_cnt: 846335
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/soybean_3847
+------------------------------------------------------------
+organism: Bos indicus
+tax_id: 9915
+common_name: zebu
+assembly: Bos_indicus_1.0 (GCF_000247795.1)
+total_ss_cnt: 46252208
+total_rs_cnt: 18158268
+new_ss_cnt: 0
+new_rs_cnt: 0
+FTP: ftp://ftp.ncbi.nih.gov/snp/organisms/zebu_9915

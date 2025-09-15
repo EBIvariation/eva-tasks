@@ -1,0 +1,118 @@
+Mar 3 2015
+dbSNP BUILD 143 Non-human Organisms Release
+===============
+The following organisms are available in dbSNP's build 143 release:
+
+organism:     Ovis aries
+tax_id:       9940
+common_name:  sheep
+Assembly:     Oar_v3.1 (GCF_000298735.1)
+Annotation:   Ovis aries Annotation Release 100 (GCF_000313975.1)
+total_ss_cnt: 100819196
+total_rs_cnt: 54004457
+new_ss_cnt:   64884419
+new_rs_cnt:   18446381
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sheep_9940
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9940
+organism:     Ovis orientalis
+tax_id:       469796
+common_name:  red_sheep
+Assembly:     Oar_v3.1 (GCF_000298735.1)
+Annotation:   Ovis orientalis Annotation Release 100 (GCF_000313975.1)
+total_ss_cnt: 29547990
+total_rs_cnt: 29263208
+new_ss_cnt:   NULL
+new_rs_cnt:   NULL
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/red_sheep_469796
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid469796
+organism:     Capra hircus
+tax_id:       9925
+common_name:  goat
+Assembly:     CHIR_1.0 (GCF_000317765.1)
+Annotation:   Capra hircus Annotation Release 100 (GCF_000465485.1)
+total_ss_cnt: 55076618
+total_rs_cnt: 37166653
+new_ss_cnt:   55016517
+new_rs_cnt:   37105560
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/goat_9925
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9925
+organism:     Capra aegagrus
+tax_id:       9923
+common_name:  wild_goat
+Assembly:     CHIR_1.0 (GCF_000317765.1)
+Annotation:   Capra aegagrus Annotation Release 100 (GCF_000465485.1)
+total_ss_cnt: 17530711
+total_rs_cnt: 17415157
+new_ss_cnt:   NULL
+new_rs_cnt:   NULL
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/wild_goat_9923
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9923
+organism:     Sus scrofa
+tax_id:       9823
+common_name:  pig
+Assembly:     Sscrofa10.2 (GCF_000003025.5)
+Annotation:   Sus scrofa Annotation Release 104 (GCF_000226365.1)
+total_ss_cnt: 82712833
+total_rs_cnt: 52679275
+new_ss_cnt:   53621946
+new_rs_cnt:   23976447
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/pig_9823
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9823
+organism:     Zea mays
+tax_id:       4577
+common_name:  corn
+Assembly:     B73_RefGen_v3 (GCF_000005005.1)
+Annotation:   Zea mays Annotation Release 100 (GCF_000722525.1)
+total_ss_cnt: 13784397
+total_rs_cnt: 10526779
+new_ss_cnt:   4750376
+new_rs_cnt:   3326502
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/corn_4577
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4577
+organism:     Microtus ochrogaster
+tax_id:       79684
+common_name:  prairie_vole
+Assembly:     MicOch1.0 (GCF_000317375.1)
+Annotation:   Microtus ochrogaster Annotation Release 100 (GCF_000447265.1)
+total_ss_cnt: 14699
+total_rs_cnt: 14545
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/prairie_vole_79684
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid79684
+
+
+organism:     Bos taurus
+tax_id:       9913
+common_name:  cow
+Assembly:     Bos_taurus_UMD_3.1 (GCF_000003055.4)
+Annotation:   Bos taurus Annotation Release 103 (GCF_000004275.3)
+total_ss_cnt: 205353356
+total_rs_cnt: 85027819
+new_ss_cnt:   76000887
+new_rs_cnt:   11509794
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cow_9913
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9913
+organism:     Ciona intestinalis
+tax_id:       7719
+common_name:  squirt
+Assembly:     KH (GCF_000224145.2)
+Annotation:   Ciona intestinalis Annotation Release 102 (GCF_000767295.1)
+total_ss_cnt: 3233523
+total_rs_cnt: 3190512
+new_ss_cnt:   3233523
+new_rs_cnt:   3190512
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/squirt_7719
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7719
+
+organism:     Microtus ochrogaster
+tax_id:       79684
+common_name:  prairie_vole
+Assembly:     MicOch1.0 (GCF_000317375.1)
+Annotation:   Microtus ochrogaster Annotation Release 100 (GCF_000447265.1)
+total_ss_cnt: 14699
+total_rs_cnt: 14545
+new_ss_cnt:   14699
+new_rs_cnt:   14545
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/prairie_vole_79684
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid79684

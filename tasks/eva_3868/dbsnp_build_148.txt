@@ -1,0 +1,126 @@
+Jul 20 2016
+dbSNP Build 148 data for cat, corn, cow, fruit fly, grape, horse, rice, sorghum, tomato, turkey, and zebra finch are available now on the web and FTP .
+
+------------------------------------------------------------
+organism:     Felis catus
+tax_id:       9685
+common_name:  cat
+assembly:     Felis_catus_8.0 (GCF_000181335.2)
+total_ss_cnt: 4527926
+total_rs_cnt: 3609965
+new_ss_cnt:   1
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cat_9685
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9685
+------------------------------------------------------------
+organism:     Zea mays
+tax_id:       4577
+common_name:  corn
+assembly:     B73_RefGen_v3 (GCF_000005005.1)
+total_ss_cnt: 72130175
+total_rs_cnt: 54627567
+new_ss_cnt:   720203
+new_rs_cnt:   375743
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/corn_4577
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4577
+------------------------------------------------------------
+organism:     Bos taurus
+tax_id:       9913
+common_name:  cow
+assembly:     Bos_taurus_UMD_3.1.1 (GCF_000003055.6)
+total_ss_cnt: 293824745
+total_rs_cnt: 100170652
+new_ss_cnt:   40
+new_rs_cnt:   623609
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/cow_9913
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9913
+------------------------------------------------------------
+organism:     Drosophila melanogaster
+tax_id:       7227
+common_name:  fruit fly
+assembly:     Release_6_plus_ISO1_MT (GCF_000001215.4)
+total_ss_cnt: 5239559
+total_rs_cnt: 5222783
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/fruitfly_7227
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid7227
+------------------------------------------------------------
+organism:     Vitis vinifera
+tax_id:       29760
+common_name:  grape
+assembly:     12X (GCF_000003745.3)
+total_ss_cnt: 470937
+total_rs_cnt: 470689
+new_ss_cnt:   59
+new_rs_cnt:   44
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/grape_29760
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid29760
+------------------------------------------------------------
+
+organism:     Equus caballus
+tax_id:       9796
+common_name:  horse
+assembly:     EquCab2.0 (GCF_000002305.2)
+total_ss_cnt: 5572571
+total_rs_cnt: 5069598
+new_ss_cnt:   34
+new_rs_cnt:   104
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/horse_9796
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9796
+------------------------------------------------------------
+organism:     Oryza sativa
+tax_id:       4530
+common_name:  rice
+assembly:     IRGSP-1.0 (GCF_001433935.1)
+              (GCF_001563185.1)
+total_ss_cnt: 18745251
+total_rs_cnt: 13158285
+new_ss_cnt:   6174100
+new_rs_cnt:   2191501
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rice_4530
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4530
+------------------------------------------------------------
+organism:     Sorghum bicolor
+tax_id:       4558
+common_name:  sorghum
+assembly:     Sorbi1 (GCF_000003195.2)
+total_ss_cnt: 8425370
+total_rs_cnt: 7130991
+new_ss_cnt:   6668695
+new_rs_cnt:   5785568
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sorghum_4558
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4558
+------------------------------------------------------------
+organism:     Solanum lycopersicum
+tax_id:       4081
+common_name:  tomato
+assembly:     SL2.50 (GCF_000188115.3)
+total_ss_cnt: 8077
+total_rs_cnt: 7855
+new_ss_cnt:   7644
+new_rs_cnt:   7566
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/tomato_4081
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4081
+------------------------------------------------------------
+organism:     Meleagris gallopavo
+tax_id:       9103
+common_name:  turkey
+assembly:     Turkey_5.0 (GCF_000146605.2)
+total_ss_cnt: 9307
+total_rs_cnt: 9275
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/turkey_9103
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9103
+------------------------------------------------------------
+organism:     Taeniopygia guttata
+tax_id:       59729
+common_name:  zebra_finch
+assembly:     Taeniopygia_guttata-3.2.4 (GCF_000151805.1)
+total_ss_cnt: 1751580
+total_rs_cnt: 1750278
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/zebra_finch_59729
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid59729
