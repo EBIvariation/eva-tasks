@@ -1,6 +1,5 @@
 package eva2326
 
-
 import com.mongodb.client.model.*
 import groovy.cli.picocli.CliBuilder
 import groovy.json.JsonSlurper
@@ -26,7 +25,6 @@ import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
 import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantSourceEntryMongo
 import uk.ac.ebi.eva.commons.models.mongo.entity.subdocuments.VariantStatsMongo
 import uk.ac.ebi.eva.commons.mongodb.entities.subdocuments.HgvsMongo
-
 
 import java.nio.file.Paths
 import java.util.regex.Pattern
@@ -71,6 +69,7 @@ class UpdateContigApplication implements CommandLineRunner {
     MappingMongoConverter converter
     ContigRenamingProcessor contigRenamer
     String variantsWithIssuesFilePath
+    String annotationRemediationFilePath
 
     private static Map<String, Integer> sidFidNumberOfSamplesMap = new HashMap<>()
     private static VariantStatsProcessor variantStatsProcessor = new VariantStatsProcessor()
@@ -89,6 +88,14 @@ class UpdateContigApplication implements CommandLineRunner {
         }
 
         variantsWithIssuesFilePath = Paths.get(variantsWithIssuesDirPath, dbName + ".txt").toString()
+
+        // create a dir to store variant's ids/info for annotation's remediation
+        String annotationsRemediationDirPath = Paths.get(workingDir, "Annotations_Remediation").toString()
+        File annotationsRemediationDir = new File(annotationsRemediationDirPath)
+        if (!annotationsRemediationDir.exists()) {
+            annotationsRemediationDir.mkdirs()
+        }
+        annotationRemediationFilePath = Paths.get(annotationsRemediationDirPath, dbName + ".txt").toString()
 
         // populate sidFidNumberOfSamplesMap
         populateFilesIdAndNumberOfSamplesMap()
@@ -249,9 +256,11 @@ class UpdateContigApplication implements CommandLineRunner {
                 Set<VariantSourceEntity> variantInDBFileSet = variantInDB.getVariantSources() != null ?
                         variantInDB.getVariantSources() : new HashSet<>()
                 Set<Pair> orgSidFidPairSet = orgVariantFileSet.stream()
+                        .filter(vse -> vse.getStudyId() != null && vse.getFileId() != null)
                         .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
                         .collect(Collectors.toSet())
                 Set<Pair> variantInDBSidFidPairSet = variantInDBFileSet.stream()
+                        .filter(vse -> vse.getStudyId() != null && vse.getFileId() != null)
                         .map(vse -> new Pair(vse.getStudyId(), vse.getFileId()))
                         .collect(Collectors.toSet())
 
@@ -261,13 +270,32 @@ class UpdateContigApplication implements CommandLineRunner {
 
                 if (commonSidFidPairs.isEmpty()) {
                     logger.info("No common sid fid entries between org variant and variant in DB")
-                    List<Bson> updateOperations = remediateCaseMergeAllSidFidAreDifferent(variantInDB, orgVariant, newId, updatedChromosome)
-                    // add updates to bulk updates and existing variant to delete list
-                    bulkUpdateOperations.add(new UpdateOneModel<>(Filters.eq("_id", newId), Updates.combine(updateOperations)))
-                    documentsToDeleteIdList.add(orgVariant.getId())
+                    if (orgVariant.getVariantSources() != null && variantInDB.getVariantSources() != null) {
+                        List<Bson> updateOperations = remediateCaseMergeAllSidFidAreDifferent(variantInDB, orgVariant, newId, updatedChromosome)
+                        // add updates to bulk updates and existing variant to delete list
+                        bulkUpdateOperations.add(new UpdateOneModel<>(Filters.eq("_id", newId), Updates.combine(updateOperations)))
+                        documentsToDeleteIdList.add(orgVariant.getId())
 
-                    annotationsToBeUpdated.add(orgVariant.getId())
-                    idProcessed.add(newId)
+                        annotationsToBeUpdated.add(orgVariant.getId())
+                        idProcessed.add(newId)
+                    } else {
+                        if (orgVariant.getVariantSources() == null) {
+                            logger.error("Variant does not have variant sources (files) field. variant: "
+                                    + orgVariant.getId() + " " + orgVariant.getChromosome()
+                                    + " " + orgVariant.getReference() + " " + orgVariant.getAlternate()
+                                    + " " + orgVariant.getStart() + " " + orgVariant.getEnd())
+                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, orgVariant.getId(), "",
+                                    "Variant Does not have variant sources (files) field " + orgChromosome)
+                        }
+                        if (variantInDB.getVariantSources() == null) {
+                            logger.error("VariantInDB does not have variant sources (files) field. variant: "
+                                    + variantInDB.getId() + " " + variantInDB.getChromosome()
+                                    + " " + variantInDB.getReference() + " " + variantInDB.getAlternate()
+                                    + " " + variantInDB.getStart() + " " + variantInDB.getEnd())
+                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, variantInDB.getId(), "",
+                                    "VariantInDB does not have variant sources (files) field. " + orgChromosome)
+                        }
+                    }
 
                     continue
                 }
@@ -280,15 +308,35 @@ class UpdateContigApplication implements CommandLineRunner {
                         .collect(Collectors.toSet())
                 if (sidFidPairsWithGTOneEntry.isEmpty()) {
                     logger.info("All common sid fid entries has only one file entry")
-                    Set<Pair> sidFidPairNotInDB = new HashSet<>(orgSidFidPairSet)
-                    sidFidPairNotInDB.removeAll(commonSidFidPairs)
-                    List<Bson> updateOperations = remediateCaseMergeAllCommonSidFidHasOneFile(variantInDB, orgVariant, sidFidPairNotInDB, newId, updatedChromosome)
-                    // add updates to bulk updates and existing variant to delete list
-                    bulkUpdateOperations.add(new UpdateOneModel<>(Filters.eq("_id", newId), Updates.combine(updateOperations)))
-                    documentsToDeleteIdList.add(orgVariant.getId())
+                    if(orgVariant.getVariantSources() != null && variantInDB.getVariantSources() != null){
+                        Set<Pair> sidFidPairNotInDB = new HashSet<>(orgSidFidPairSet)
+                        sidFidPairNotInDB.removeAll(commonSidFidPairs)
+                        List<Bson> updateOperations = remediateCaseMergeAllCommonSidFidHasOneFile(variantInDB, orgVariant, sidFidPairNotInDB, newId, updatedChromosome)
+                        // add updates to bulk updates and existing variant to delete list
+                        bulkUpdateOperations.add(new UpdateOneModel<>(Filters.eq("_id", newId), Updates.combine(updateOperations)))
+                        documentsToDeleteIdList.add(orgVariant.getId())
 
-                    annotationsToBeUpdated.add(orgVariant.getId())
-                    idProcessed.add(newId)
+                        annotationsToBeUpdated.add(orgVariant.getId())
+                        idProcessed.add(newId)
+                    }else{
+                        if (orgVariant.getVariantSources() == null) {
+                            logger.error("Variant does not have variant sources (files) field. variant: "
+                                    + orgVariant.getId() + " " + orgVariant.getChromosome()
+                                    + " " + orgVariant.getReference() + " " + orgVariant.getAlternate()
+                                    + " " + orgVariant.getStart() + " " + orgVariant.getEnd())
+                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, orgVariant.getId(), "",
+                                    "Variant Does not have variant sources (files) field " + orgChromosome)
+                        }
+                        if (variantInDB.getVariantSources() == null) {
+                            logger.error("VariantInDB does not have variant sources (files) field. variant: "
+                                    + variantInDB.getId() + " " + variantInDB.getChromosome()
+                                    + " " + variantInDB.getReference() + " " + variantInDB.getAlternate()
+                                    + " " + variantInDB.getStart() + " " + variantInDB.getEnd())
+                            storeVariantsThatCantBeProcessed(variantsWithIssuesFilePath, variantInDB.getId(), "",
+                                    "VariantInDB does not have variant sources (files) field. " + orgChromosome)
+                        }
+                    }
+
 
                     continue
                 }
@@ -318,7 +366,8 @@ class UpdateContigApplication implements CommandLineRunner {
 
             if (!annotationsToBeUpdated.isEmpty()) {
                 orgVariantNewIdMap = orgVariantNewIdMap.findAll { k, v -> annotationsToBeUpdated.contains(k) }
-                remediateAnnotations(orgVariantNewIdMap, orgVariantInsdcChrMap)
+//                remediateAnnotations(orgVariantNewIdMap, orgVariantInsdcChrMap)
+                writeVariantsForAnnotationUpdates(annotationRemediationFilePath, orgVariantNewIdMap, orgVariantInsdcChrMap)
             }
 
 
@@ -326,6 +375,19 @@ class UpdateContigApplication implements CommandLineRunner {
 
         }
     }
+
+
+    void writeVariantsForAnnotationUpdates(String annotationRemediationFilePath, Map<String, String> orgVariantNewIdMap, Map<String, String> orgVariantInsdcChrMap) {
+        try (BufferedWriter annotationsRemediationFile = new BufferedWriter(new FileWriter(annotationRemediationFilePath, true))) {
+            orgVariantNewIdMap.each { originalId, newId ->
+                String insdcChromosome = orgVariantInsdcChrMap.get(originalId)
+                annotationsRemediationFile.write("${originalId},${newId},${insdcChromosome}\n")
+            }
+        } catch (IOException e) {
+            logger.error("error storing variant id for remediating annotations in file: {}", annotationRemediationFilePath, e)
+        }
+    }
+
 
     List<VariantDocument> getVariantsInDB(List<String> idList) {
         Query idQuery = new Query(where("_id").in(idList))
@@ -389,6 +451,7 @@ class UpdateContigApplication implements CommandLineRunner {
         List<Bson> updateOperations = new ArrayList<>()
 
         Set<VariantSourceEntryMongo> candidateFiles = orgVariant.getVariantSources().stream()
+                .filter(vse -> vse.getStudyId() != null && vse.getFileId() != null)
                 .filter(vse -> sidFidPairNotInDB.contains(new Pair(vse.getStudyId(), vse.getFileId())))
                 .collect(Collectors.toSet())
         Set<VariantStatsMongo> variantStats = variantStatsProcessor.process(variantInDB.getReference(),
