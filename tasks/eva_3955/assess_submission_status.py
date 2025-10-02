@@ -1,7 +1,7 @@
 import csv
 import os
+import subprocess
 import sys
-from argparse import ArgumentParser
 from time import sleep
 
 import yaml
@@ -26,22 +26,35 @@ def delete_eload(eload):
 def run_qc_submission(eload):
     log_file = os.path.join(get_eload_folder(eload), 'qc_submission.txt')
     command = f'qc_submission.py --eload {eload} > {log_file}'
-    run_command_with_output(f'run qc_submission.py for eload {eload} > {log_file}', command)
-    sleep(1)
-    config_file = os.path.join(get_eload_folder(eload), f'.ELOAD_{eload}_config.yml')
-    with open(config_file, 'r') as f:
-        eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
-        checks = eload_cfg.get('qc_checks')
-        if checks:
-            return 'PASS' if all('PASS' in check for check in checks) else 'FAIL'
-        else:
+    if not os.path.exists(log_file):
+        try:
+            run_command_with_output(f'run qc_submission.py for eload {eload} > {log_file}', command)
+        except subprocess.CalledProcessError:
             return 'FAIL'
+        sleep(1)
+
+    config_file = os.path.join(get_eload_folder(eload), f'.ELOAD_{eload}_config.yml')
+    if os.path.isfile(config_file):
+        with open(config_file, 'r') as f:
+            eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
+            checks = eload_cfg.get('qc_checks')
+            if checks:
+                return 'PASS' if all('PASS' in check for check in checks) else 'FAIL'
+            else:
+                return 'FAIL'
+    else:
+        return 'FAIL'
 
 def run_submission_status(eload):
     log_file = os.path.join(get_eload_folder(eload), 'submission_status.txt')
     command = f'submission_status.py --eload {eload} > {log_file}'
-    run_command_with_output(f'run submission_status.py for eload {eload} > {log_file}', command)
-    sleep(1)
+    if not os.path.exists(log_file):
+        try:
+            run_command_with_output(f'run submission_status.py for eload {eload} > {log_file}', command)
+        except subprocess.CalledProcessError:
+            return 'FAIL'
+        sleep(1)
+
     with open(log_file, 'r') as f:
         for line in f:
             if line.startswith(f'ELOAD_{eload}'):
@@ -66,21 +79,24 @@ def load_eloads_from_jira(jira_csv):
 def eload_size(eload):
     log_file = os.path.join(get_eload_folder(eload), 'eload_size.txt')
     command_sh = f'du -s {get_eload_folder(eload)} >  {log_file}'
-    run_command_with_output(f'run du for eload {eload} ', command_sh, return_process_output=True)
-    sleep(1)
+    if not os.path.exists(log_file):
+        run_command_with_output(f'run du for eload {eload} ', command_sh, return_process_output=True)
+        sleep(1)
     with open(log_file, 'r') as f:
         text=f.readline().strip()
         sp_txt = text.split()
         if len(sp_txt[0]) > 1 and sp_txt[0].isdigit():
-            return int(sp_txt[0])
+            return sp_txt[0]
         else:
             logger.error(f'Could not determine size of eload {eload}')
-            return 0
+            return '0'
 
 
 def main():
+    accepted_status = ['Done', 'Cancelled']
     for eload, status in load_eloads_from_jira(sys.argv[1]):
-        if os.path.isdir(get_eload_folder(eload)):
+
+        if status in accepted_status and os.path.isdir(get_eload_folder(eload)):
             results = [
                 eload,
                 status,
@@ -88,13 +104,21 @@ def main():
                 run_submission_status(eload),
                 run_qc_submission(eload)
             ]
+        elif not os.path.isdir(get_eload_folder(eload)):
+            results = [
+                eload,
+                status,
+                '0',
+                'NO DIR',
+                'NO DIR'
+            ]
         else:
             results = [
                 eload,
                 status,
-                0,
-                'NO DIR',
-                'NO DIR'
+                eload_size(eload),
+                'Not completed',
+                'Not completed'
             ]
         print('\t'.join(results))
 
