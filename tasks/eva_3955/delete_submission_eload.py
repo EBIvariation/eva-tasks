@@ -1,10 +1,10 @@
 import csv
-import logging
 import os
 import sys
 from argparse import ArgumentParser
-from itertools import islice
+from time import sleep
 
+import yaml
 from ebi_eva_common_pyutils.logger import logging_config as log_cfg
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
 
@@ -12,25 +12,47 @@ logger = log_cfg.get_logger(__name__)
 
 submission_folder = ''
 
+def get_eload_folder(eload):
+    eload_string = f'ELOAD_{eload}'
+    return os.path.join(submission_folder, eload_string)
+
 def delete_eload(eload):
     eload_string = f'ELOAD_{eload}'
-    # Check the existance of an ELOAD FOLDER
-    eload_folder = os.path.join(submission_folder, eload_string)
-    if not eload_folder:
+    # Check the folder exists of an ELOAD FOLDER
+    eload_dir = get_eload_folder(eload)
+    if not eload_dir:
         logger.error(f'No folder for the specified ELOAD {eload_string}')
 
 def run_qc_submission(eload):
-    command = f'qc_submission.py --eload {eload}'
-    eload_string = f'ELOAD_{eload}'
-    log_file = os.path.join(submission_folder, eload_string, 'qc_submission.txt')
+    log_file = os.path.join(get_eload_folder(eload), 'qc_submission.txt')
+    command = f'qc_submission.py --eload {eload} > {log_file}'
     run_command_with_output(f'run qc_submission.py for eload {eload} > {log_file}', command)
-
+    sleep(1)
+    config_file = os.path.join(get_eload_folder(eload), f'.ELOAD_{eload}_config.yml')
+    with open(config_file, 'r') as f:
+        eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
+        checks = eload_cfg.get('qc_checks')
+        if checks:
+            return 'PASS' if all('PASS' in check for check in checks) else 'FAIL'
+        else:
+            return 'FAIL'
 
 def run_submission_status(eload):
-    command = f'submission_status.py --eload {eload}'
-    eload_string = f'ELOAD_{eload}'
-    log_file = os.path.join(submission_folder, eload_string, 'submission_status.txt')
+    log_file = os.path.join(get_eload_folder(eload), 'submission_status.txt')
+    command = f'submission_status.py --eload {eload} > {log_file}'
     run_command_with_output(f'run submission_status.py for eload {eload} > {log_file}', command)
+    sleep(1)
+    with open(log_file, 'r') as f:
+        for line in f:
+            if line.startswith(f'ELOAD_{eload}'):
+                sp_line = line.strip().split('\t')
+                '''
+eload   project analysis        taxonomy        source_assembly target_assembly metadata_load_status    accessioning_status     remapping_status        clustering_statusvariant_load_status      statistics_status       annotation_status
+'''
+                # Return the metadata_load_status
+                return 'PASS' if sp_line[6] == 'Done' else 'FAIL'
+    return 'FAIL'
+
 
 def load_eloads_from_jira(jira_csv):
     with open(jira_csv) as open_file:
@@ -41,16 +63,40 @@ def load_eloads_from_jira(jira_csv):
             status = row.get('Status')
             yield eload, status
 
+def eload_size(eload):
+    log_file = os.path.join(get_eload_folder(eload), 'eload_size.txt')
+    command_sh = f'du -s {get_eload_folder(eload)} >  {log_file}'
+    run_command_with_output(f'run du for eload {eload} ', command_sh, return_process_output=True)
+    sleep(1)
+    with open(log_file, 'r') as f:
+        text=f.readline().strip()
+        sp_txt = text.split()
+        if len(sp_txt[0]) > 1 and sp_txt[0].isdigit():
+            return int(sp_txt[0])
+        else:
+            logger.error(f'Could not determine size of eload {eload}')
+            return 0
+
 
 def main():
     for eload, status in load_eloads_from_jira(sys.argv[1]):
-        run_submission_status(eload)
-        run_qc_submission(eload)
-        delete_eload(eload)
-
-
-
-
+        if os.path.isdir(get_eload_folder(eload)):
+            results = [
+                eload,
+                status,
+                eload_size(eload),
+                run_submission_status(eload),
+                run_qc_submission(eload)
+            ]
+        else:
+            results = [
+                eload,
+                status,
+                0,
+                'NO DIR',
+                'NO DIR'
+            ]
+        print('\t'.join(results))
 
 
 if __name__ == '__main__':
