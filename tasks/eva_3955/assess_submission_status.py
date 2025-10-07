@@ -39,7 +39,11 @@ def run_qc_submission(eload):
             eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
             checks = eload_cfg.get('qc_checks')
             if checks:
-                return 'PASS' if all('PASS' in check for check in checks) else 'FAIL'
+                if all('PASS' in check for check in checks):
+                    return 'PASS'
+                else:
+                    list_checks = [check for check in checks if 'PASS' not in check]
+                    f'FAIL({",".join(list_checks)})'
             else:
                 return 'FAIL'
     else:
