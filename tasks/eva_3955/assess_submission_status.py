@@ -39,11 +39,11 @@ def run_qc_submission(eload):
             eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
             checks = eload_cfg.get('qc_checks')
             if checks:
-                if all('PASS' in check for check in checks):
+                if all('PASS' in checks[check_name] for check_name in checks):
                     return 'PASS'
                 else:
-                    list_checks = [check for check in checks if 'PASS' not in check]
-                    f'FAIL({",".join(list_checks)})'
+                    list_checks = [check_name for check_name in checks if 'PASS' not in checks[check_name]]
+                    return f'FAIL({",".join(list_checks)})'
             else:
                 return 'FAIL'
     else:
@@ -67,8 +67,8 @@ def run_submission_status(eload):
 eload   project analysis        taxonomy        source_assembly target_assembly metadata_load_status    accessioning_status     remapping_status        clustering_statusvariant_load_status      statistics_status       annotation_status
 '''
                 # Return the metadata_load_status
-                return 'PASS' if sp_line[6] == 'Done' else 'FAIL'
-    return 'FAIL'
+                return 'PASS' if sp_line[6] == 'Done' else sp_line[6]
+    return 'Not completed'
 
 
 def load_eloads_from_jira(jira_csv):
@@ -97,6 +97,9 @@ def eload_size(eload):
 
 
 def main():
+    if not submission_folder:
+        print('Provide the submission folder')
+        sys.exit(1)
     accepted_status = ['Done', 'Cancelled']
     for eload, status in load_eloads_from_jira(sys.argv[1]):
 
@@ -124,7 +127,9 @@ def main():
                 'Not completed',
                 'Not completed'
             ]
+        print(results)
         print('\t'.join(results))
+    return
 
 
 if __name__ == '__main__':
