@@ -16,6 +16,9 @@ def get_eload_folder(eload):
     eload_string = f'ELOAD_{eload}'
     return os.path.join(submission_folder, eload_string)
 
+def get_eload_config(eload):
+    return os.path.join(get_eload_folder(eload), f'.ELOAD_{eload}_config.yml')
+
 def delete_eload(eload):
     eload_string = f'ELOAD_{eload}'
     # Check the folder exists of an ELOAD FOLDER
@@ -33,7 +36,7 @@ def run_qc_submission(eload):
             return 'FAIL'
         sleep(1)
 
-    config_file = os.path.join(get_eload_folder(eload), f'.ELOAD_{eload}_config.yml')
+    config_file = get_eload_config(eload)
     if os.path.isfile(config_file):
         with open(config_file, 'r') as f:
             eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
@@ -112,7 +115,7 @@ def main():
                 run_submission_status(eload),
                 run_qc_submission(eload)
             ]
-        elif not os.path.isdir(get_eload_folder(eload)):
+        elif not os.path.isdir(get_eload_folder(eload)) or not os.path.isfile(get_eload_config(eload)):
             results = [
                 eload,
                 status,
