@@ -29,7 +29,16 @@ def delete_eload(eload):
 def run_qc_submission(eload):
     log_file = os.path.join(get_eload_folder(eload), 'qc_submission.txt')
     command = f'qc_submission.py --eload {eload} > {log_file}'
-    if not os.path.exists(log_file):
+
+    config_file = get_eload_config(eload)
+    already_run = False
+    if os.path.isfile(config_file):
+        with open(config_file, 'r') as f:
+            eload_cfg = yaml.load(f, Loader=yaml.FullLoader)
+            checks = eload_cfg.get('qc_checks')
+            if checks:
+                already_run = True
+    if not already_run:
         try:
             run_command_with_output(f'run qc_submission.py for eload {eload} > {log_file}', command)
         except subprocess.CalledProcessError:
