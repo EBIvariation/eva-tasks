@@ -116,7 +116,7 @@ def main():
     accepted_status = ['Done', 'Cancelled']
     for eload, status in load_eloads_from_jira(sys.argv[1]):
 
-        if status in accepted_status and os.path.isdir(get_eload_folder(eload)):
+        if status in accepted_status and os.path.isdir(get_eload_folder(eload)) and os.path.isfile(get_eload_config(eload)):
             results = [
                 eload,
                 status,
