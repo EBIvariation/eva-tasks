@@ -51,6 +51,7 @@ def run_qc_submission(eload):
 
 def run_submission_status(eload):
     log_file = os.path.join(get_eload_folder(eload), 'submission_status.txt')
+
     command = f'submission_status.py --eload {eload} > {log_file}'
     if not os.path.exists(log_file):
         try:
@@ -127,7 +128,6 @@ def main():
                 'Not completed',
                 'Not completed'
             ]
-        print(results)
         print('\t'.join(results))
     return
 
