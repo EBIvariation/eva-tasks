@@ -1,0 +1,45 @@
+Aug 26 2015
+dbSNP BUILD 145: Pig, Chicken, Sorghum, and Gibbon.
+===============
+The following organisms are available in dbSNP's build 145 release:
+
+organism:     Sus scrofa
+tax_id:       9823
+common_name:  pig
+Assembly:     Sscrofa10.2 (GCF_000003025.5)
+total_ss_cnt: 135476983
+total_rs_cnt: 60361867
+new_ss_cnt:   20646376
+new_rs_cnt:   7682594
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/pig_9823
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9823
+tax_id:       9031
+common_name:  chicken
+Assembly:     Gallus_gallus-4.0 (GCF_000002315.3)
+total_ss_cnt: 57442585
+total_rs_cnt: 21281860
+new_ss_cnt:   147
+new_rs_cnt:   838111
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/chicken_9031
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9031
+organism:     Sorghum bicolor
+tax_id:       4558
+common_name:  sorghum
+Assembly:     Sorbi1 (GCF_000003195.2)
+total_ss_cnt: 1756675
+total_rs_cnt: 1345423
+new_ss_cnt:   0
+new_rs_cnt:   36586
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sorghum_4558
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4558
+
+organism:     Nomascus leucogenys
+tax_id:       61853
+common_name:  northern white-cheeked gibbon
+Assembly:     Nleu_3.0 (GCF_000146795.2)
+total_ss_cnt: 1173217
+total_rs_cnt: 1173217
+new_ss_cnt:   0
+new_rs_cnt:   1173217
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/primates_61853
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid61853

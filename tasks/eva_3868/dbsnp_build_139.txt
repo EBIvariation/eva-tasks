@@ -1,0 +1,146 @@
+Oct 31 2013
+The following organisms are available in dbSNP's build 139 release.
+
+organism:     Aspergillus fumigatus
+tax_id:       746128
+Assembly:     ASM265v1 (GCF_000002655.1)
+Annotation:   Aspergillus fumigatus Annotation Release 100 (GCF_000256155.1)
+total_ss_cnt: 876398
+total_rs_cnt: 114955
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/ascomycetes_746128
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid746128
+
+organism:     Canis familiaris
+tax_id:       9615
+Assembly:     CanFam3.1 (GCF_000002285.3)
+Annotation:   Canis lupus familiaris Annotation Release 102 (GCF_000235965.1)
+total_ss_cnt: 3531778
+total_rs_cnt: 3263123
+new_ss_cnt:   106
+new_rs_cnt:   4239
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/dog_9615
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9615
+
+organism:     Equus caballus
+tax_id:       9796
+Assembly:     EquCab2.0 (GCF_000002305.2)
+Annotation:   Equus caballus Annotation Release 100 (GCF_000218255.1)
+total_ss_cnt: 5453018
+total_rs_cnt: 4974054
+new_ss_cnt:   4289273
+new_rs_cnt:   3810474
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/horse_9796
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9796
+
+organism:     Glycine max
+tax_id:       3847
+Assembly:     V1.0 (GCF_000004515.1)
+Annotation:   Glycine max Annotation Release 100 (GCF_000231295.1)
+total_ss_cnt: 21588586
+total_rs_cnt: 12105367
+new_ss_cnt:   15210236
+new_rs_cnt:   5753333
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/soybean_3847
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid3847
+
+organism:     Gorilla gorilla
+tax_id:       9593
+Assembly:     gorGor3.1 (GCF_000151905.1)
+Annotation:   Gorilla gorilla Annotation Release 100 (GCF_000313295.1)
+total_ss_cnt: 5
+total_rs_cnt: 5
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/gorilla_9593
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9593
+
+organism:     Meleagris gallopavo
+tax_id:       9103
+Assembly:     Turkey_2.01 (GCF_000146605.1)
+Annotation:   Meleagris gallopavo Annotation Release 100 (GCF_000191995.1)
+total_ss_cnt: 9307
+total_rs_cnt: 9275
+new_ss_cnt:   22
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/turkey_9103
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9103
+
+organism:     Monodelphis domestica
+tax_id:       13616
+Assembly:     MonDom5 (GCF_000002295.2)
+Annotation:   Monodelphis domestica Annotation Release 101 (GCF_000184275.1)
+total_ss_cnt: 1196103
+total_rs_cnt: 1194131
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/opossum_13616
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid13616
+
+organism:     Ornithorhynchus anatinus
+tax_id:       9258
+Assembly:     Ornithorhynchus_anatinus_5.0.1 (GCF_000002275.2)
+Annotation:   Ornithorhynchus anatinus Annotation Release 101 (GCF_000184255.1)
+total_ss_cnt: 1883034
+total_rs_cnt: 1319269
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/platypus_9258
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9258
+
+organism:     Ovis aries
+tax_id:       9940
+Assembly:     Oar_v3.1 (GCF_000298735.1)
+Annotation:   Ovis aries Annotation Release 100 (GCF_000313975.1)
+total_ss_cnt: 2915034
+total_rs_cnt: 2839270
+new_ss_cnt:   196
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/sheep_9940
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9940
+
+organism:     Solanum lycopersicum
+tax_id:       4081
+Assembly:     SL2.40 (GCF_000188115.1)
+Annotation:   Solanum lycopersicum Annotation Release 100 (GCF_000344675.1)
+total_ss_cnt: 433
+total_rs_cnt: 289
+new_ss_cnt:   0
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/tomato_4081
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid4081
+
+organism:     Taeniopygia guttata
+tax_id:       59729
+Assembly:     Taeniopygia_guttata0.2.4 (GCF_000151805.1)
+Annotation:   Taeniopygia guttata Annotation Release 101 (GCF_000332575.1)
+total_ss_cnt: 1751580
+total_rs_cnt: 1750278
+new_ss_cnt:   0
+new_rs_cnt:   1750278
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/zebra_finch_59729
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid59729
+
+organism:     Vitis vinifera
+tax_id:       29760
+Assembly:     12X (GCF_000003745.2)
+Annotation:   Vitis vinifera Annotation Release 100 (GCF_000236055.1)
+total_ss_cnt: 470878
+total_rs_cnt: 470645
+new_ss_cnt:   40
+new_rs_cnt:   0
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/grape_29760
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid29760
+
+organism:     Oryctolagus cuniculus
+tax_id:       9986
+Assembly:     OryCun2.0 (GCF_000003625.2)
+Annotation:   Oryctolagus cuniculus Annotation Release 100 (GCF_000004725.1)
+total_ss_cnt: 24
+total_rs_cnt: 24
+new_ss_cnt:   24
+new_rs_cnt:   24
+FTP:          ftp://ftp.ncbi.nih.gov/snp/organisms/rabbit_9986
+Entrez:       http://www.ncbi.nlm.nih.gov/snp/?term=txid9986
+
