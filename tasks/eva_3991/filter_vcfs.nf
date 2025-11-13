@@ -34,7 +34,7 @@ if (!params.vcf_files || !params.output_dir ) {
 workflow {
     vcf_files_ch = Channel.fromPath(params.vcf_files)
         .splitCsv(header:true)
-        .map{row -> file(row.vcf))}
+        .map{row -> file(row.vcf)}
 
     remove_invalid_variant(vcf_files_ch)
 
@@ -54,13 +54,13 @@ process remove_invalid_variant {
     path(vcf_file)
 
     output:
-    path "output_files/$vcf_file", emit: filtered_files
+    path "filtered_files/$vcf_file", emit: filtered_files
 
     script:
     """
     set -eo pipefail
     mkdir filtered_files
-    zcat $vcf_file | grep -Pv 'UNKN|Y_unplaced' | params.executables.bcftools view -O z -o filtered_files/$vcf_file -
+    zcat $vcf_file | grep -Pv 'UNKN|Y_unplaced' | $params.executable.bcftools view -O z -o filtered_files/$vcf_file -
     """
 }
 
