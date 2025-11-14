@@ -94,11 +94,13 @@ def process_eloads(source_eload, dest_eload, tasks):
     if 'validate' in tasks:
         with EloadValidation(eload_number=dest_eload) as eload_val:
             eload_val.validate()
+            eload_val.report()
 
     if 'copy_back' in tasks:
         with EloadValidation(eload_number=source_eload) as eload_src_val, EloadValidation(eload_number=dest_eload) as eload_dest_val:
             eload_src_val.eload_cfg.set('validation', value=eload_dest_val.eload_cfg.get('validation'))
             eload_src_val.mark_valid_files_and_metadata()
+            eload_src_val.report()
 
 def main():
     arg_parser = argparse.ArgumentParser(description='Filter and copy the VCF files from an ELOAD and copy the results to another. Run the validation then copy the results to a new ELOAD. Run the validation then copy the results to a old ELOAD.')
