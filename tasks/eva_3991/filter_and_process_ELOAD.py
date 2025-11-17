@@ -22,7 +22,7 @@ logger = log_cfg.get_logger(__name__)
 
 all_tasks = ['prepare', 'validate', 'copy_back']
 
-def modify_an_copy_metadata(eload_src, eload_dst):
+def modify_and_copy_metadata(eload_src, eload_dst):
     src_metadata_json = eload_src.eload_cfg.query('submission', 'metadata_json')
     with open(src_metadata_json) as open_file:
         source_json = json.load(open_file)
@@ -85,7 +85,7 @@ def process_eloads(source_eload, dest_eload, tasks):
     eload_src  = Eload(source_eload)
     eload_dst = Eload(dest_eload)
     if 'prepare' in tasks:
-        modify_an_copy_metadata(eload_src, eload_dst)
+        modify_and_copy_metadata(eload_src, eload_dst)
         filter_and_copy_vcf_files(eload_src, eload_dst)
 
         with EloadPreparation(eload_number=dest_eload) as eload_prep:
@@ -103,10 +103,10 @@ def process_eloads(source_eload, dest_eload, tasks):
             eload_src_val.report()
 
 def main():
-    arg_parser = argparse.ArgumentParser(description='Filter and copy the VCF files from an ELOAD and copy the results to another. Run the validation then copy the results to a new ELOAD. Run the validation then copy the results to a old ELOAD.')
+    arg_parser = argparse.ArgumentParser(description='Filter and copy the VCF files from an ELOAD and copy the results to another. Run the validation then copy the results to a new ELOAD. Run the validation then copy the results to the old ELOAD.')
     arg_parser.add_argument('--source_eload', required=True, help='The source eload number.')
 
-    arg_parser.add_argument('--dest_eload', required=True, help='The source eload number.')
+    arg_parser.add_argument('--dest_eload', required=True, help='The destination eload number.')
     arg_parser.add_argument('--tasks', required=False, default=all_tasks, nargs='+',
                             help='The set of tasks that will be performed.')
     arg_parser.add_argument('--debug', action='store_true', default=False,

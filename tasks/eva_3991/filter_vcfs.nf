@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 
 def helpMessage() {
     log.info"""
-    Validate a set of VCF files and metadata to check if they are valid to be submitted to EVA.
+    Filter out variants on invalid contigs from a set of VCF files.
 
     Inputs:
             --vcf_files     csv file with the mappings for vcf files, fasta and assembly report
@@ -15,7 +15,7 @@ def helpMessage() {
 params.vcf_files = null
 params.output_dir = null
 // executables
-params.executable = ["bgzip": "bgzip"]
+params.executable = ["bcftools": "bcftools"]
 // help
 params.help = null
 
