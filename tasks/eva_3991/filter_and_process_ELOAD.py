@@ -27,9 +27,13 @@ def modify_and_copy_metadata(eload_src, eload_dst):
     with open(src_metadata_json) as open_file:
         source_json = json.load(open_file)
         dest_json = deepcopy(source_json)
+        # Modify the file path
+        for file_dict in dest_json.get('files'):
+            file_dict['fileName'] = file_dict['fileName'].replace(eload_src.eload, eload_dst.eload)
     dst_metadata_json = os.path.join(eload_dst._get_dir('metadata'), os.path.basename(src_metadata_json))
     with open(dst_metadata_json, 'w') as open_file:
         json.dump(dest_json, open_file)
+    eload_dst.eload_cfg.set('submission', 'metadata_json', value=dst_metadata_json)
 
 def generate_csv_for_vcfs(src_eload, input_files):
     vcf_files_csv = os.path.join(src_eload.eload_dir, 'filtering_vcf_files.csv')
