@@ -16,7 +16,8 @@ QUERY = {
     ]
 }
 
-
+# Link to code in variation-commons that determines the type of a variant
+# https://github.com/EBIvariation/variation-commons/blob/2a4d3244f65d6b32682451751d63a9bce6e6f7ce/variation-commons-core/src/main/java/uk/ac/ebi/eva/commons/core/models/AbstractVariant.java#L149
 def get_variant_type(ref, alt):
     if ref is None or ref == '':
         return 'INS'
