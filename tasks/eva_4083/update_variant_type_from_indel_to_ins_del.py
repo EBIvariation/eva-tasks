@@ -8,11 +8,14 @@ logger = logging_config.get_logger(__name__)
 
 BATCH_SIZE = 1000
 VARIANT_COLL_NAME = 'variants_2_0'
+
+INS_REGEX = r'^[^_]+_\d+__[^_]+$'  # empty ref (double underscore)
+DEL_REGEX = r'^[^_]+_\d+_[^_]+_$'  # empty alt (trailing underscore)
 QUERY = {
     'type': 'INDEL',
     '$or': [
-        {'ref': {'$in': ['', None]}},
-        {'alt': {'$in': ['', None]}}
+        {'_id': {'$regex': INS_REGEX}},
+        {'_id': {'$regex': DEL_REGEX}}
     ]
 }
 
@@ -29,7 +32,7 @@ def get_variant_type(ref, alt):
 
 def process_indel_variants(db_name, variant_coll):
     modified_count = 0
-    cursor = variant_coll.find(QUERY, {'_id': 1, 'ref': 1, 'alt': 1}).batch_size(BATCH_SIZE)
+    cursor = variant_coll.find(QUERY, {'_id': 1, 'ref': 1, 'alt': 1}).batch_size(BATCH_SIZE).allow_disk_use(True)
 
     batch = []
     for variant in cursor:
