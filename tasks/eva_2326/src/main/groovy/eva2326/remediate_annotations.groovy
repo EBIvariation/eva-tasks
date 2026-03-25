@@ -17,17 +17,16 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
 
-import java.nio.file.Paths
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 import static org.springframework.data.mongodb.core.query.Criteria.where
 
 def cli = new CliBuilder()
-cli.workingDir(args: 1, "Path to the working directory where processing files will be kept", required: true)
 cli.envPropertiesFile(args: 1, "Properties file with db details to use for update", required: true)
 cli.dbName(args: 1, "Database name that needs to be updated", required: true)
 cli.annotationRemediationInputFile(args: 1, "Path to CSV file with old_variant_id,new_variant_id,insdc_contig for annotation remediation", required: true)
+cli.notRemediatedVariantsFilePath(args: 1, "Path to file where the variants which are not remediated will be stored", required: true)
 def options = cli.parse(args)
 if (!options) {
     cli.usage()
@@ -37,7 +36,7 @@ if (!options) {
 new SpringApplicationBuilder(RemediateAnnotationsApplication.class).properties([
         'spring.config.location'      : options.envPropertiesFile,
         'spring.data.mongodb.database': options.dbName])
-        .run(options.workingDir, options.dbName, options.annotationRemediationInputFile)
+        .run(options.annotationRemediationInputFile, options.notRemediatedVariantsFilePath)
 
 
 @SpringBootApplication(exclude = [DataSourceAutoConfiguration.class])
@@ -53,17 +52,8 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
 
     @Override
     void run(String... args) throws Exception {
-        String workingDir = args[0]
-        String dbName = args[1]
-        String annotationRemediationInputFile = args[2]
-
-        // create a dir to store variants that have not been remediated - don't try annotation remediation for these
-        String notRemediatedVariantsDirPath = Paths.get(workingDir, "variants_not_remediated").toString()
-        File notRemediatedVariantsDir = new File(notRemediatedVariantsDirPath)
-        if (!notRemediatedVariantsDir.exists()) {
-            notRemediatedVariantsDir.mkdirs()
-        }
-        notRemediatedVariantsFilePath = Paths.get(notRemediatedVariantsDirPath, dbName + ".txt").toString()
+        String annotationRemediationInputFile = args[0]
+        this.notRemediatedVariantsFilePath = args[1]
 
         // workaround to not save _class field in documents
         converter = mongoTemplate.getConverter()
