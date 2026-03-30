@@ -49,6 +49,7 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
     MongoTemplate mongoTemplate
     MappingMongoConverter converter
     String notRemediatedVariantsFilePath
+    BufferedWriter notRemediatedWriter
 
     @Override
     void run(String... args) throws Exception {
@@ -65,49 +66,54 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
             System.exit(1)
         }
 
+        notRemediatedWriter = new BufferedWriter(new FileWriter(notRemediatedVariantsFilePath, true))
         // Stream through the file line by line, accumulating into a batch.
         // Once the batch reaches BATCH_SIZE, process and clear it before reading further.
-        List<String[]> batch = new ArrayList<>()
-        int lineNumber = 0
-        int skippedLines = 0
-        int totalProcessed = 0
+        try {
+            List<String[]> batch = new ArrayList<>()
+            int lineNumber = 0
+            int skippedLines = 0
+            int totalProcessed = 0
 
-        inputFile.withReader { reader ->
-            String line
-            while ((line = reader.readLine()) != null) {
-                lineNumber++
-                String trimmed = line.trim()
-                if (!trimmed) {
-                    continue
-                }
+            inputFile.withReader { reader ->
+                String line
+                while ((line = reader.readLine()) != null) {
+                    lineNumber++
+                    String trimmed = line.trim()
+                    if (!trimmed) {
+                        continue
+                    }
 
-                String[] parts = trimmed.split(",", -1)
-                if (parts.length < 3 || !parts[0].trim() || !parts[1].trim() || !parts[2].trim()) {
-                    logger.warn("Skipping malformed line {} in input file: '{}'", lineNumber, trimmed)
-                    skippedLines++
-                    continue
-                }
+                    String[] parts = trimmed.split(",", -1)
+                    if (parts.length < 3 || !parts[0].trim() || !parts[1].trim() || !parts[2].trim()) {
+                        logger.warn("Skipping malformed line {} in input file: '{}'", lineNumber, trimmed)
+                        skippedLines++
+                        continue
+                    }
 
-                batch.add([parts[0].trim(), parts[1].trim(), parts[2].trim()] as String[])
+                    batch.add([parts[0].trim(), parts[1].trim(), parts[2].trim()] as String[])
 
-                if (batch.size() >= RemediateAnnotationsApplication.BATCH_SIZE) {
-                    processBatch(batch)
-                    totalProcessed += batch.size()
-                    logger.info("Total entries processed so far: {}", totalProcessed)
-                    batch.clear()
+                    if (batch.size() >= RemediateAnnotationsApplication.BATCH_SIZE) {
+                        processBatch(batch)
+                        totalProcessed += batch.size()
+                        logger.info("Total entries processed so far: {}", totalProcessed)
+                        batch.clear()
+                    }
                 }
             }
+
+            if (!batch.isEmpty()) {
+                processBatch(batch)
+                totalProcessed += batch.size()
+                batch.clear()
+            }
+
+            logger.info("Annotation remediation complete. Total entries processed: {}, malformed lines skipped: {}",
+                    totalProcessed, skippedLines)
+        } finally {
+            notRemediatedWriter.close()
         }
 
-        // process any remaining entries in the last partial batch
-        if (!batch.isEmpty()) {
-            processBatch(batch)
-            totalProcessed += batch.size()
-            batch.clear()
-        }
-
-        logger.info("Annotation remediation complete. Total entries processed: {}, malformed lines skipped: {}",
-                totalProcessed, skippedLines)
         System.exit(0)
     }
 
@@ -160,8 +166,9 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
     }
 
     void storeNotRemediatedVariant(String oldVariantId, String newVariantId, String reason) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(notRemediatedVariantsFilePath, true))) {
-            writer.write("${oldVariantId},${newVariantId},${reason}\n")
+        try {
+            notRemediatedWriter.write("${oldVariantId},${newVariantId},${reason}\n")
+            notRemediatedWriter.flush()
         } catch (IOException e) {
             logger.error("Error writing to not-remediated variants file for old id {}: {}", oldVariantId, e.getMessage())
         }
@@ -170,34 +177,42 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
     void remediateAnnotations(Map<String, String> orgIdNewIdMap, Map<String, String> orgIdInsdcChrMap) {
         Set<String> idProcessed = new HashSet<>()
 
-        // Build a combined regex query to fetch all relevant annotations in one round trip,
-        // matching documents whose _id starts with either the old or new variant id
-        List<Criteria> regexCriteria = new ArrayList<>()
-        for (Map.Entry<String, String> entry : orgIdNewIdMap.entrySet()) {
-            regexCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(entry.getKey()) + "_\\d"))
-            regexCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(entry.getValue()) + "_\\d"))
+        // fetch annotations for all old variant ids
+        List<Criteria> oldIdCriteria = new ArrayList<>()
+        for (String oldId : orgIdNewIdMap.keySet()) {
+            oldIdCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(oldId) + "_\\d"))
         }
 
-        Query combinedQuery = new Query(new Criteria().orOperator(regexCriteria.toArray(new Criteria[0])))
+        // fetch annotations for all new variant ids
+        List<Criteria> newIdCriteria = new ArrayList<>()
+        for (String newId : orgIdNewIdMap.values()) {
+            newIdCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(newId) + "_\\d"))
+        }
 
         try {
-            List<Document> annotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
-                    .find(combinedQuery.getQueryObject())
+            List<Document> oldAnnotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
+                    .find(new Query(new Criteria().orOperator(oldIdCriteria.toArray(new Criteria[0]))).getQueryObject())
                     .into(new ArrayList<>())
-
-            // Group fetched annotation documents by variant id prefix (both old and new ids)
-            Map<String, Set<Document>> variantIdToDocuments = new HashMap<>()
-            for (Document doc : annotationsList) {
-                String id = doc.getString("_id")
-                for (String oldVariantId : orgIdNewIdMap.keySet()) {
-                    if (id.startsWith(oldVariantId + "_") && id.substring(oldVariantId.length() + 1).matches("\\d.*")) {
-                        variantIdToDocuments.computeIfAbsent(oldVariantId, k -> new HashSet<>()).add(doc)
-                    }
+            Map<String, Set<Document>> oldVariantIdToDocuments = new HashMap<>()
+            for (Document doc : oldAnnotationsList) {
+                String variantId = extractVariantIdFromAnnotationId(doc.getString("_id"))
+                if (variantId != null) {
+                    oldVariantIdToDocuments.computeIfAbsent(variantId, k -> new HashSet<>()).add(doc)
+                }else{
+                    logger.error("Could not get variantId from the annotation: " + doc)
                 }
-                for (String newVariantId : orgIdNewIdMap.values()) {
-                    if (id.startsWith(newVariantId + "_") && id.substring(newVariantId.length() + 1).matches("\\d.*")) {
-                        variantIdToDocuments.computeIfAbsent(newVariantId, k -> new HashSet<>()).add(doc)
-                    }
+            }
+
+            List<Document> newAnnotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
+                    .find(new Query(new Criteria().orOperator(newIdCriteria.toArray(new Criteria[0]))).getQueryObject())
+                    .into(new ArrayList<>())
+            Map<String, Set<String>> newVariantIdToAnnotationIds = new HashMap<>()
+            for (Document doc : newAnnotationsList) {
+                String variantId = extractVariantIdFromAnnotationId(doc.getString("_id"))
+                if (variantId != null) {
+                    newVariantIdToAnnotationIds.computeIfAbsent(variantId, k -> new HashSet<>()).add(doc.getString("_id"))
+                }else{
+                    logger.error("Could not get variantId from the annotation: " + doc)
                 }
             }
 
@@ -206,11 +221,8 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
                 String orgVariantId = entry.getKey()
                 String newVariantId = entry.getValue()
 
-                Set<Document> orgAnnotationsSet = variantIdToDocuments.getOrDefault(orgVariantId, Collections.emptySet())
-                Set<String> existingNewAnnotationIds = variantIdToDocuments.getOrDefault(newVariantId, Collections.emptySet())
-                        .stream()
-                        .map(doc -> doc.getString("_id"))
-                        .collect(Collectors.toSet())
+                Set<Document> orgAnnotationsSet = oldVariantIdToDocuments.getOrDefault(orgVariantId, Collections.emptySet())
+                Set<String> existingNewAnnotationIds = newVariantIdToAnnotationIds.getOrDefault(newVariantId, Collections.emptySet())
 
                 if (orgAnnotationsSet.isEmpty()) {
                     logger.info("No annotations found for old variant id {}, nothing to remediate", orgVariantId)
@@ -255,5 +267,9 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
         } catch (BsonSerializationException ex) {
             logger.error("Exception occurred while trying to update annotations: {}", ex.getMessage(), ex)
         }
+    }
+
+    static String extractVariantIdFromAnnotationId(String annotationId) {
+        return annotationId.replaceFirst(/_\w+_\w+$/, "")
     }
 }
