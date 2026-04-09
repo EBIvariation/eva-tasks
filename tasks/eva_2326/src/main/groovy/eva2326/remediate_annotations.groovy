@@ -17,7 +17,6 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import uk.ac.ebi.eva.commons.models.mongo.entity.VariantDocument
 
-import java.util.regex.Pattern
 import java.util.stream.Collectors
 
 import static org.springframework.data.mongodb.core.query.Criteria.where
@@ -36,7 +35,7 @@ if (!options) {
 new SpringApplicationBuilder(RemediateAnnotationsApplication.class).properties([
         'spring.config.location'      : options.envPropertiesFile,
         'spring.data.mongodb.database': options.dbName])
-        .run(options.annotationRemediationInputFile, options.notRemediatedVariantsFilePath)
+        .run(options.annotationRemediationInputFile, options.notRemediatedVariantsFilePath, options.dbName)
 
 
 @SpringBootApplication(exclude = [DataSourceAutoConfiguration.class])
@@ -45,16 +44,30 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
     private static int BATCH_SIZE = 1000
     public static final String VARIANTS_COLLECTION = "variants_2_0"
     public static final String ANNOTATIONS_COLLECTION = "annotations_2_0"
+    public static final Map<String, Set<String>> DB_VEP_CACHE_VERSION_SUFFIXES = [
+            "eva_hsapiens_grch37": ["78_78"].toSet(),
+            "eva_hsapiens_grch38": ["86_86"].toSet()
+    ].asImmutable()
+
     @Autowired
     MongoTemplate mongoTemplate
     MappingMongoConverter converter
     String notRemediatedVariantsFilePath
     BufferedWriter notRemediatedWriter
+    Set<String> vepCacheVersionSuffixes
 
     @Override
     void run(String... args) throws Exception {
         String annotationRemediationInputFile = args[0]
         this.notRemediatedVariantsFilePath = args[1]
+        String dbName = args[2]
+
+        this.vepCacheVersionSuffixes = DB_VEP_CACHE_VERSION_SUFFIXES.get(dbName)
+        if (vepCacheVersionSuffixes == null || vepCacheVersionSuffixes.isEmpty()) {
+            logger.error("No VEP/cache version suffixes configured for db: {}", dbName)
+            System.exit(1)
+        }
+
 
         // workaround to not save _class field in documents
         converter = mongoTemplate.getConverter()
@@ -177,44 +190,42 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
     void remediateAnnotations(Map<String, String> orgIdNewIdMap, Map<String, String> orgIdInsdcChrMap) {
         Set<String> idProcessed = new HashSet<>()
 
-        // fetch annotations for all old variant ids
-        List<Criteria> oldIdCriteria = new ArrayList<>()
-        for (String oldId : orgIdNewIdMap.keySet()) {
-            oldIdCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(oldId) + "_\\d"))
-        }
+        List<String> allOldAnnotationIds = new ArrayList<>()
+        List<String> allNewAnnotationIds = new ArrayList<>()
+        Map<String, String> oldAnnotationIdToVariantId = new HashMap<>()
 
-        // fetch annotations for all new variant ids
-        List<Criteria> newIdCriteria = new ArrayList<>()
-        for (String newId : orgIdNewIdMap.values()) {
-            newIdCriteria.add(Criteria.where("_id").regex("^" + Pattern.quote(newId) + "_\\d"))
+        for (Map.Entry<String, String> entry : orgIdNewIdMap.entrySet()) {
+            String oldVariantId = entry.getKey()
+            String newVariantId = entry.getValue()
+            for (String vepVCacheV : vepCacheVersionSuffixes) {
+                String oldAnnotationId = "${oldVariantId}_${vepVCacheV}"
+                String newAnnotationId = "${newVariantId}_${vepVCacheV}"
+                allOldAnnotationIds.add(oldAnnotationId)
+                allNewAnnotationIds.add(newAnnotationId)
+                oldAnnotationIdToVariantId.put(oldAnnotationId, oldVariantId)
+            }
         }
 
         try {
             List<Document> oldAnnotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
-                    .find(new Query(new Criteria().orOperator(oldIdCriteria.toArray(new Criteria[0]))).getQueryObject())
+                    .find(new Query(Criteria.where("_id").in(allOldAnnotationIds)).getQueryObject())
+                    .into(new ArrayList<>())
+            List<Document> newAnnotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
+                    .find(new Query(Criteria.where("_id").in(allNewAnnotationIds)).getQueryObject())
                     .into(new ArrayList<>())
             Map<String, Set<Document>> oldVariantIdToDocuments = new HashMap<>()
             for (Document doc : oldAnnotationsList) {
-                String variantId = extractVariantIdFromAnnotationId(doc.getString("_id"))
+                String variantId = oldAnnotationIdToVariantId.get(doc.getString("_id"))
                 if (variantId != null) {
                     oldVariantIdToDocuments.computeIfAbsent(variantId, k -> new HashSet<>()).add(doc)
-                }else{
-                    logger.error("Could not get variantId from the annotation: " + doc)
+                } else {
+                    logger.error("Could not map annotation id back to variant id: {}", doc.getString("_id"))
                 }
             }
 
-            List<Document> newAnnotationsList = mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
-                    .find(new Query(new Criteria().orOperator(newIdCriteria.toArray(new Criteria[0]))).getQueryObject())
-                    .into(new ArrayList<>())
-            Map<String, Set<String>> newVariantIdToAnnotationIds = new HashMap<>()
-            for (Document doc : newAnnotationsList) {
-                String variantId = extractVariantIdFromAnnotationId(doc.getString("_id"))
-                if (variantId != null) {
-                    newVariantIdToAnnotationIds.computeIfAbsent(variantId, k -> new HashSet<>()).add(doc.getString("_id"))
-                }else{
-                    logger.error("Could not get variantId from the annotation: " + doc)
-                }
-            }
+            Set<String> existingNewAnnotationIds = newAnnotationsList
+                    .collect { it.getString("_id") }
+                    .toSet()
 
             // Process each old->new id pair
             for (Map.Entry<String, String> entry : orgIdNewIdMap.entrySet()) {
@@ -222,7 +233,6 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
                 String newVariantId = entry.getValue()
 
                 Set<Document> orgAnnotationsSet = oldVariantIdToDocuments.getOrDefault(orgVariantId, Collections.emptySet())
-                Set<String> existingNewAnnotationIds = newVariantIdToAnnotationIds.getOrDefault(newVariantId, Collections.emptySet())
 
                 if (orgAnnotationsSet.isEmpty()) {
                     logger.info("No annotations found for old variant id {}, nothing to remediate", orgVariantId)
@@ -267,9 +277,5 @@ class RemediateAnnotationsApplication implements CommandLineRunner {
         } catch (BsonSerializationException ex) {
             logger.error("Exception occurred while trying to update annotations: {}", ex.getMessage(), ex)
         }
-    }
-
-    static String extractVariantIdFromAnnotationId(String annotationId) {
-        return annotationId.replaceFirst(/_\w+_\w+$/, "")
     }
 }
