@@ -1,0 +1,40 @@
+Section	dgvaTable	metadataField	definition	type	notNull	default
+Study	DGVA_STUDY	CREATION_DATE	Date when study was first entered into the archive	DATE	FALSE	SYSDATE
+Study	STUDY_COMMENT	STUDY_COMMENT	The text of the comment, free text	VARCHAR2(4000)	TRUE	
+Study	STUDY_COMMENT	COMMENT_USER_NAME	The user who added the comment	VARCHAR2(4000)	FALSE	user
+Study	STUDY_COMMENT	COMMENT_TIMESTAMP	Timestamp for addition of a study comment	TIMESTAMP	FALSE	CURRENT_TIMESTAMP
+Study	STUDY_UPDATE	SUBMISSION_VERSION	The version of the submission template used for the update	NUMBER(10,0)	FALSE	
+Study	STUDY_UPDATE	UPDATE_COMMENT	A free text description of the update.  Could come from dbVar/DGVA or the submitter	VARCHAR2(4000)	FALSE	
+Study	STUDY_UPDATE	NEW_FEATURE	Boolean indicating if the update is addition of new data	NUMBER(10,0)	FALSE
+Study	STUDY_UPDATE	CORRECTION	Indicate if the update represents a correction of loaded data	NUMBER(10,0)	FALSE
+Study	STUDY_CONTACT	AFFILIATION_URL	An attribute (column name is self-explanatory) describing the contact individuals for a study, e.g. submitter	VARCHAR2(4000)	FALSE	
+Study	DGVA_EXPERIMENT	EXPERIMENT_SITE	Used to record site where data was generated for studies such as 1000 Genomes	VARCHAR2(4000)	FALSE	
+Study	DGVA_EXPERIMENT	EXPERIMENT_RESOLUTION	Prior to Exchange V2.9.8 was method_resolution. Now experiment_resolution, indicating the resolution in kilo base pairs of the experiment as a whole.	VARCHAR2(4000)	FALSE
+Study	DGVA_DETECTION	DETECTION_METHOD	Free text entry for the type of detection used	VARCHAR2(4000)	FALSE	
+Study	DGVA_DETECTION	DETECTION_DESCRIPTION	Free text description of the type of detection used in an experiment	VARCHAR2(4000)	FALSE	
+Study	EXPERIMENT_CURATION	CURATOR_NAME	The given name of the person/institution responsible for curating the study	VARCHAR2(4000)	TRUE	
+Study	EXPERIMENT_CURATION	CURATOR_EMAIL	The given e-mail of the person/institution responsible for curating the study	VARCHAR2(4000)	TRUE	
+Study	EXPERIMENT_CURATION	CURATED_SET_NAME	The given name for the set of curated variants	VARCHAR2(4000)	TRUE	
+Study	EXPERIMENT_CURATION	CURATED_SET_LINK		VARCHAR2(4000)	FALSE
+Study	DGVA_METHOD	METHOD_TYPE	Controlled by CV in table "method_type_cv"	VARCHAR2(4000)	TRUE	
+Study	DGVA_METHOD	METHOD_RESOLUTION	Text as reported by the submitter, e.g. BP for "base pair"	VARCHAR2(4000)	FALSE	
+Study	DGVA_METHOD	METHOD_DESCRIPTION	Values controlled by entries in table "method_type_cv"	VARCHAR2(4000)	FALSE	
+Study	PUBMED_PUBLICATION	PUBMED_ID	Publication ID from Pubmed	NUMBER(10,0)	TRUE
+Study	PUBMED_PUBLICATION	ARTICLE_TITLE	Publication title from Pubmed	VARCHAR2(4000)	FALSE
+Study	PUBMED_PUBLICATION	FIRST_AUTHOR	Publication first author from Pubmed	VARCHAR2(4000)	FALSE
+Study	PUBMED_PUBLICATION	JOURNAL_TITLE	Publication journal title from Pubmed	VARCHAR2(4000)	FALSE
+Study	PUBMED_PUBLICATION	PUBLICATION_YEAR	Publication year from Pubmed	NUMBER(10,0)	FALSE
+Study	PUBMED_PUBLICATION	ARTICLE_ABSTRACT	Publication abstract from Pubmed	VARCHAR2(4000)	FALSE
+Study	DGVA_SUBJECT	SUBJECT_SEX	Controlled by table "sex_cv"	VARCHAR2(4000)	FALSE	
+Study	DGVA_SUBJECT	SUBJECT_AGE		VARCHAR2(4000)	FALSE	
+Study	SUBJECT_FAMILY_RELATIONSHIP	FAMILY_RELATIONSHIP	An FK from table "family_relationship_cv"	VARCHAR2(4000)	TRUE
+Study	PHENOTYPE_CV	PHENOTYPE_DATABASE_NAME	An FK from table "phenotype_database_name_cv"	VARCHAR2(4000)	TRUE
+Analysis	ANALYSIS_REFERENCE_TYPE_CV	REFERENCE_TYPE	Populated from XSD "ReferenceTypeCV"	VARCHAR2(4000)	TRUE	
+Sample	DGVA_SAMPLE	SAMPLE_CELL_TYPE	Provided by submitter, usually null and sometimes "Cell-culture"	VARCHAR2(4000)	FALSE	
+Sample	DGVA_SAMPLE	SAMPLE_CANCER	Indicate if the sample is tumour-derived	VARCHAR2(4000)	FALSE	
+Sample	DGVA_SAMPLE	SAMPLE_KARYOTYPE	Can be recored by submitter if relevant, almost always null	VARCHAR2(4000)	FALSE	
+Sample	DGVA_SAMPLESET	SAMPLESET_NAME	Recorded by the submitter, corresponds to the attribute "sampleset_name="  of the <SAMPLESET> element in the Exchange XML	VARCHAR2(4000)	FALSE	
+Sample	DGVA_SAMPLESET	SAMPLESET_TYPE	Submitter-provided.  Optional and rarely used, example is "Control"	VARCHAR2(4000)	FALSE	
+Sample	DGVA_SAMPLESET	SAMPLESET_SEX	Optional value provided by submitter	VARCHAR2(4000)	FALSE	
+File	STUDY_FILE	FILE_DESCRIPTION	Records any information specific to a given file	VARCHAR2(4000)	FALSE	No description given'
+File	STUDY_FILE	FILE_CONTENT	Entire file contents, gzipped if possible. Can contain text, XML, or proprietary binary files such as Excel spreadsheets	BLOB	FALSE	
