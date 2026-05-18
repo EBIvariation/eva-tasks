@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -51,6 +52,8 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
     private static long TOTAL_COUNTS = 0
     public static final String VARIANTS_COLLECTION = "variants_2_0"
     public static final String ANNOTATIONS_COLLECTION = "annotations_2_0"
+    private static final long LOG_INTERVAL = 1_000_000
+    private static long nextLogThreshold = LOG_INTERVAL
 
     @Autowired
     MongoTemplate mongoTemplate
@@ -99,7 +102,10 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                     logger.error("There was an error processing batch. " + e)
                 }
                 TOTAL_COUNTS += BATCH_COUNT
-                logger.info("Total document processed till now: {}", TOTAL_COUNTS)
+                if (TOTAL_COUNTS >= nextLogThreshold) {
+                    logger.info("Processed {} annotation documents so far", TOTAL_COUNTS)
+                    nextLogThreshold += LOG_INTERVAL
+                }
                 annotationsBatch.clear()
                 BATCH_COUNT = 0
             }
@@ -112,7 +118,7 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 logger.error("There was an error processing batch. " + e)
             }
             TOTAL_COUNTS += BATCH_COUNT
-            logger.info("Total document processed till now: {}", TOTAL_COUNTS)
+            logger.info("Finished processing total {} annotation documents", TOTAL_COUNTS)
             annotationsBatch.clear()
             BATCH_COUNT = 0
         }
@@ -164,25 +170,51 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 .collect(Collectors.toList())
 
         if (!annotationsToBeUpdatedWithInsdcChromosomes.isEmpty()) {
-            List<WriteModel<Document>> bulkUpdateOperations = new ArrayList<>()
+            logger.info("Documents to be updated because of non-insdc chromosome {}", annotationsToBeUpdatedWithInsdcChromosomes.size())
+            Set<String> targetIds = annotationsToBeUpdatedWithInsdcChromosomes.stream()
+                    .map {
+                        it.getAnnotationId().replaceFirst(
+                                "^" + Pattern.quote(it.getChromosome()),
+                                Matcher.quoteReplacement(it.getInsdcChromosome())
+                        )
+                    }
+                    .collect(Collectors.toSet())
+
+            Query targetQuery = new Query(where("_id").in(targetIds))
+            targetQuery.fields().include("_id").include("chr").include("start")
+            Map<String, Document> existingTargetDocs = mongoTemplate.find(targetQuery, Document.class, ANNOTATIONS_COLLECTION)
+                    .stream().collect(Collectors.toMap({ it.get("_id") as String }, { it }))
+
+            List<WriteModel<Document>> replaceOps = new ArrayList<>()
+            List<WriteModel<Document>> insertOps = new ArrayList<>()
 
             for (AnnotationUpdateModel annotationUpdateModel : annotationsToBeUpdatedWithInsdcChromosomes) {
-                // update annotation id and chr to be INSDC
                 Document updatedAnnotDocument = new Document(annotationUpdateModel.getOrginalAnnotationDocument())
-                String newId = annotationUpdateModel.getAnnotationId() .replaceFirst(
+                String newId = annotationUpdateModel.getAnnotationId().replaceFirst(
                         "^" + Pattern.quote(annotationUpdateModel.getChromosome()),
                         Matcher.quoteReplacement(annotationUpdateModel.getInsdcChromosome())
                 )
                 updatedAnnotDocument["_id"] = newId
                 updatedAnnotDocument["chr"] = annotationUpdateModel.getInsdcChromosome()
-                bulkUpdateOperations.add(new ReplaceOneModel<>(
-                        Filters.eq("_id", newId),
-                        updatedAnnotDocument,
-                        new ReplaceOptions().upsert(true)
-                ))
+
+                Document existingTargetDoc = existingTargetDocs.get(newId)
+                if (existingTargetDoc != null) {
+                    replaceOps.add(new ReplaceOneModel<>(Filters.and(
+                                    Filters.eq("_id", newId),
+                                    Filters.eq("chr", existingTargetDoc.get("chr")),
+                                    Filters.eq("start", existingTargetDoc.get("start"))
+                            ), updatedAnnotDocument))
+                } else {
+                    insertOps.add(new InsertOneModel<>(updatedAnnotDocument))
+                }
             }
 
-            mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(bulkUpdateOperations)
+            if (!replaceOps.isEmpty()) {
+                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(replaceOps, new BulkWriteOptions().ordered(false))
+            }
+            if (!insertOps.isEmpty()) {
+                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(insertOps, new BulkWriteOptions().ordered(false))
+            }
 
             // delete existing annotations with non insdc chromosomes
             Set<String> documentsToDeleteIdList = annotationsToBeUpdatedWithInsdcChromosomes.stream()
@@ -205,10 +237,18 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
 
         // update chromosome field with the chromosome from the id
         if (!annotationsWithMismatchChromosomeList.isEmpty()) {
+            logger.info("Documents to be updated because of mis-matching chromosome {}", annotationsWithMismatchChromosomeList.size())
             List<WriteModel<Document>> bulkUpdateOperations = new ArrayList<>()
             for (AnnotationUpdateModel annotationUpdateModel : annotationsWithMismatchChromosomeList) {
-                bulkUpdateOperations.add(new UpdateOneModel<>(Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
-                        Updates.set("chr", annotationUpdateModel.getChromosome())))
+                Document originalDoc = annotationUpdateModel.getOrginalAnnotationDocument()
+                bulkUpdateOperations.add(new UpdateOneModel<>(
+                        Filters.and(
+                                Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
+                                Filters.eq("chr", originalDoc.get("chr")),
+                                Filters.eq("start", originalDoc.get("start"))
+                        ),
+                        Updates.set("chr", annotationUpdateModel.getChromosome())
+                ))
             }
             mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(bulkUpdateOperations)
         }
@@ -262,6 +302,9 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
     }
 
     byte[] extractBytes(def id) {
+        if (id == null) {
+            return new byte[0]
+        }
         if (id instanceof byte[]) {
             return id
         }
@@ -271,8 +314,11 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
         if (id instanceof ObjectId) {
             return id.toByteArray()
         }
+        if (id instanceof String) {
+            return id.getBytes(StandardCharsets.UTF_8)
+        }
 
-        throw new IllegalArgumentException("Unsupported _id type: ${id?.getClass()}")
+        return id.toString().getBytes(StandardCharsets.UTF_8)
     }
 }
 
@@ -295,7 +341,11 @@ class AnnotationUpdateModel {
     }
 
     private String getChromosomeFromAnnotationId(String annotationId) {
-        return annotationId.substring(0, annotationId.indexOf("_"))
+        def m = annotationId =~ /^(.*?)(?=_[0-9]+_)/
+        if (!m.find()) {
+            throw new IllegalArgumentException("Cannot parse chromosome from annotation id: " + annotationId)
+        }
+        return m.group(1)
     }
 
     private String getVariantIdFromAnnotationId(String annotationId) {
