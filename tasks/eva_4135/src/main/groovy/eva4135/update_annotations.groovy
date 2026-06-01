@@ -132,6 +132,13 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
         List<AnnotationUpdateModel> annotationUpdateModelList = annotationsDocumentList.stream()
                 .map(annotDoc -> new AnnotationUpdateModel(annotDoc))
                 .collect(Collectors.toList())
+        List<String> variantIdList = annotationUpdateModelList.stream()
+                .map(annotUpdate -> annotUpdate.getVariantId())
+                .collect(Collectors.toList())
+        Query query = new Query(where("_id").in(variantIdList));
+        query.fields().include("_id").include("chr").include("start").include("end")
+        Map<String, Document> variantsIdsInDBMap = mongoTemplate.find(query, Document.class, VARIANTS_COLLECTION)
+                .collectEntries { [(it.get("_id") as String): it] }
 
         // update insdc chromosome for all annotations
         for (AnnotationUpdateModel annotationUpdateModel : annotationUpdateModelList) {
@@ -154,19 +161,9 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 .filter(annotUpdate -> annotUpdate.getInsdcChromosome() != null)
                 .filter(annotUpdate -> !annotUpdate.getChromosome().equals(annotUpdate.getInsdcChromosome()))
                 .collect(Collectors.toList())
-        // get the variant ids for annotations for which we are trying to update
-        List<String> variantIdList = annotationsWithNonInsdcChromosome.stream()
-                .map(annotUpdate -> annotUpdate.getVariantId())
-                .collect(Collectors.toList())
-        // check if the variant is still present in the DB
-        Query query = new Query(where("_id").in(variantIdList));
-        query.fields().include("_id");
-        Set<String> variantsIdsInDB = mongoTemplate.find(query, Document.class, VARIANTS_COLLECTION)
-                .stream().map(variantDoc -> variantDoc.get("_id"))
-                .collect(Collectors.toSet())
         // remove all those annotations for which variant id is still present in the db (variant not remediated yet), these will not be remediated
         List<AnnotationUpdateModel> annotationsToBeUpdatedWithInsdcChromosomes = annotationsWithNonInsdcChromosome.stream()
-                .filter(annotUpdate -> !variantsIdsInDB.contains(annotUpdate.getVariantId()))
+                .filter(annotUpdate -> !variantsIdsInDBMap.containsKey(annotUpdate.getVariantId()))
                 .collect(Collectors.toList())
 
         if (!annotationsToBeUpdatedWithInsdcChromosomes.isEmpty()) {
@@ -200,10 +197,10 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 Document existingTargetDoc = existingTargetDocs.get(newId)
                 if (existingTargetDoc != null) {
                     replaceOps.add(new ReplaceOneModel<>(Filters.and(
-                                    Filters.eq("_id", newId),
-                                    Filters.eq("chr", existingTargetDoc.get("chr")),
-                                    Filters.eq("start", existingTargetDoc.get("start"))
-                            ), updatedAnnotDocument))
+                            Filters.eq("_id", newId),
+                            Filters.eq("chr", existingTargetDoc.get("chr")),
+                            Filters.eq("start", existingTargetDoc.get("start"))
+                    ), updatedAnnotDocument))
                 } else {
                     insertOps.add(new InsertOneModel<>(updatedAnnotDocument))
                 }
@@ -223,34 +220,54 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
         }
 
 
-        /* check annotations for mismatch of chr in the Id and chr field */
+        /* check annotations for mismatch of chr, start and end in the Id and chr field */
 
-        // get all those annotations Ids which are going to be updated as part of the insdc chromosome update
-        Set<String> alreadyUpdatedAnnotationIds = annotationsToBeUpdatedWithInsdcChromosomes.stream()
+        // get all those annotation Ids which has already been updated as part of the insdc chromosome update
+        Set<String> alreadyUpdatedChrAnnotationIds = annotationsToBeUpdatedWithInsdcChromosomes.stream()
                 .map(annotUpdate -> annotUpdate.getAnnotationId())
                 .collect(Collectors.toSet())
-        // find the annotations to be updated for chr mismatch (removing all updated for INSDC)
-        List<AnnotationUpdateModel> annotationsWithMismatchChromosomeList = annotationUpdateModelList.stream()
-                .filter(annotUpdate -> !annotUpdate.getChromosome().equals(annotUpdate.getChromosomeFromChrField()))
-                .filter(annotUpdate -> !alreadyUpdatedAnnotationIds.contains(annotUpdate.getAnnotationId()))
-                .collect(Collectors.toList())
 
-        // update chromosome field with the chromosome from the id
-        if (!annotationsWithMismatchChromosomeList.isEmpty()) {
-            logger.info("Documents to be updated because of mis-matching chromosome {}", annotationsWithMismatchChromosomeList.size())
-            List<WriteModel<Document>> bulkUpdateOperations = new ArrayList<>()
-            for (AnnotationUpdateModel annotationUpdateModel : annotationsWithMismatchChromosomeList) {
-                Document originalDoc = annotationUpdateModel.getOrginalAnnotationDocument()
+        // update mismatch fields (in case of mismatch, update chromosome field with the chromosome from the annotation id, start and end field from the variant)
+        List<WriteModel<Document>> bulkUpdateOperations = new ArrayList<>()
+        for (AnnotationUpdateModel annotationUpdateModel : annotationUpdateModelList) {
+            Document originalAnnotDoc = annotationUpdateModel.getOrginalAnnotationDocument()
+            Document originalVariant = variantsIdsInDBMap.get(annotationUpdateModel.getVariantId())
+
+            Document fieldsToUpdate = new Document()
+
+            // check for chromosome mismatch
+            if (!annotationUpdateModel.getChromosome().equals(annotationUpdateModel.getChromosomeFromChrField())
+                    && !alreadyUpdatedChrAnnotationIds.contains(annotationUpdateModel.getAnnotationId())) {
+                fieldsToUpdate.put("chr", annotationUpdateModel.getChromosome())
+            }
+
+            if (originalVariant != null) {
+                // check for start mismatch
+                if (!originalVariant.get("start").equals(annotationUpdateModel.getStart())) {
+                    fieldsToUpdate.put("start", originalVariant.get("start"))
+                }
+                // check for end mismatch
+                if (!originalVariant.get("end").equals(annotationUpdateModel.getEnd())) {
+                    fieldsToUpdate.put("end", originalVariant.get("end"))
+                }
+            }
+
+            if (!fieldsToUpdate.isEmpty()) {
+                Document update = new Document('$set', fieldsToUpdate)
                 bulkUpdateOperations.add(new UpdateOneModel<>(
                         Filters.and(
                                 Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
-                                Filters.eq("chr", originalDoc.get("chr")),
-                                Filters.eq("start", originalDoc.get("start"))
+                                Filters.eq("chr", originalAnnotDoc.get("chr")),
+                                Filters.eq("start", originalAnnotDoc.get("start"))
                         ),
-                        Updates.set("chr", annotationUpdateModel.getChromosome())
+                        update
                 ))
             }
-            mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(bulkUpdateOperations)
+        }
+
+        if (!bulkUpdateOperations.isEmpty()) {
+            mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(bulkUpdateOperations,
+                    new BulkWriteOptions().ordered(false))
         }
     }
 
@@ -330,6 +347,8 @@ class AnnotationUpdateModel {
     String chromosome
     String variantId
     String insdcChromosome
+    int start
+    int end
 
     AnnotationUpdateModel(Document annotationDocument) {
         this.orginalAnnotationDocument = annotationDocument
@@ -338,6 +357,8 @@ class AnnotationUpdateModel {
         this.chromosome = this.getChromosomeFromAnnotationId(this.annotationId)
         this.variantId = this.getVariantIdFromAnnotationId(this.annotationId)
         this.insdcChromosome = null
+        this.start = annotationDocument.getInteger("start")
+        this.end = annotationDocument.getInteger("end")
     }
 
     private String getChromosomeFromAnnotationId(String annotationId) {
@@ -374,6 +395,14 @@ class AnnotationUpdateModel {
 
     String getInsdcChromosome() {
         return insdcChromosome
+    }
+
+    int getStart() {
+        return start
+    }
+
+    int getEnd() {
+        return end
     }
 
     void setInsdcChromosome(String insdcChromosome) {
