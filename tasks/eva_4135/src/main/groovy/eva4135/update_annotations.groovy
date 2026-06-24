@@ -99,7 +99,7 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 try {
                     processAnnotationsBatch(annotationsBatch)
                 } catch (Exception e) {
-                    logger.error("There was an error processing batch. " + e)
+                    logger.error("There was an error processing batch. ", e)
                 }
                 TOTAL_COUNTS += BATCH_COUNT
                 if (TOTAL_COUNTS >= nextLogThreshold) {
@@ -115,7 +115,7 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
             try {
                 processAnnotationsBatch(annotationsBatch)
             } catch (Exception e) {
-                logger.error("There was an error processing batch. " + e)
+                logger.error("There was an error processing batch. ", e)
             }
             TOTAL_COUNTS += BATCH_COUNT
             logger.info("Finished processing total {} annotation documents", TOTAL_COUNTS)
@@ -168,22 +168,6 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
 
         if (!annotationsToBeUpdatedWithInsdcChromosomes.isEmpty()) {
             logger.info("Documents to be updated because of non-insdc chromosome {}", annotationsToBeUpdatedWithInsdcChromosomes.size())
-            Set<String> targetIds = annotationsToBeUpdatedWithInsdcChromosomes.stream()
-                    .map {
-                        it.getAnnotationId().replaceFirst(
-                                "^" + Pattern.quote(it.getChromosome()),
-                                Matcher.quoteReplacement(it.getInsdcChromosome())
-                        )
-                    }
-                    .collect(Collectors.toSet())
-
-            Query targetQuery = new Query(where("_id").in(targetIds))
-            targetQuery.fields().include("_id").include("chr").include("start")
-            Map<String, Document> existingTargetDocs = mongoTemplate.find(targetQuery, Document.class, ANNOTATIONS_COLLECTION)
-                    .stream().collect(Collectors.toMap({ it.get("_id") as String }, { it }))
-
-            List<WriteModel<Document>> replaceOps = new ArrayList<>()
-            List<WriteModel<Document>> insertOps = new ArrayList<>()
 
             for (AnnotationUpdateModel annotationUpdateModel : annotationsToBeUpdatedWithInsdcChromosomes) {
                 Document updatedAnnotDocument = new Document(annotationUpdateModel.getOrginalAnnotationDocument())
@@ -194,29 +178,37 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
                 updatedAnnotDocument["_id"] = newId
                 updatedAnnotDocument["chr"] = annotationUpdateModel.getInsdcChromosome()
 
-                Document existingTargetDoc = existingTargetDocs.get(newId)
-                if (existingTargetDoc != null) {
-                    replaceOps.add(new ReplaceOneModel<>(Filters.and(
-                            Filters.eq("_id", newId),
-                            Filters.eq("chr", existingTargetDoc.get("chr")),
-                            Filters.eq("start", existingTargetDoc.get("start"))
-                    ), updatedAnnotDocument))
-                } else {
-                    insertOps.add(new InsertOneModel<>(updatedAnnotDocument))
+                String oldId = annotationUpdateModel.getAnnotationId()
+
+                try {
+                    // Try insert first (target doesn't exist — happy path)
+                    mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).insertOne(updatedAnnotDocument)
+                    // Insert succeeded — safe to delete original
+                    mongoTemplate.remove(Query.query(Criteria.where("_id").is(oldId)), ANNOTATIONS_COLLECTION)
+                } catch (com.mongodb.MongoWriteException e) {
+                    if (e.getCode() == 11000) {
+                        // Duplicate key — target already exists with possibly stale chr/start/end
+                        // Must delete it first (can't $set shard key fields), then re-insert
+                        try {
+                            mongoTemplate.remove(Query.query(Criteria.where("_id").is(newId)), ANNOTATIONS_COLLECTION)
+                            mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).insertOne(updatedAnnotDocument)
+                            // Both succeeded — safe to delete original
+                            mongoTemplate.remove(Query.query(Criteria.where("_id").is(oldId)), ANNOTATIONS_COLLECTION)
+                        } catch (Exception retryEx) {
+                            logger.error("Failed to replace existing target annotation {}. Original id: {}. Exception: {}",
+                                    newId, oldId, retryEx.getMessage())
+                            // Original is kept intact — no data loss
+                        }
+                    } else {
+                        logger.error("Failed to insert updated annotation document with new id {}. Original id: {}. Exception: {}",
+                                newId, oldId, e.getMessage())
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to insert updated annotation document with new id {}. Original id: {}. Exception: {}",
+                            newId, oldId, e.getMessage())
                 }
             }
 
-            if (!replaceOps.isEmpty()) {
-                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(replaceOps, new BulkWriteOptions().ordered(false))
-            }
-            if (!insertOps.isEmpty()) {
-                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(insertOps, new BulkWriteOptions().ordered(false))
-            }
-
-            // delete existing annotations with non insdc chromosomes
-            Set<String> documentsToDeleteIdList = annotationsToBeUpdatedWithInsdcChromosomes.stream()
-                    .map(annotUpdate -> annotUpdate.getAnnotationId()).collect(Collectors.toSet())
-            mongoTemplate.remove(Query.query(Criteria.where("_id").in(documentsToDeleteIdList)), ANNOTATIONS_COLLECTION)
         }
 
 
@@ -229,45 +221,97 @@ class UpdateAnnotationsApplication implements CommandLineRunner {
 
         // update mismatch fields (in case of mismatch, update chromosome field with the chromosome from the annotation id, start and end field from the variant)
         List<WriteModel<Document>> bulkUpdateOperations = new ArrayList<>()
+        List<WriteModel<Document>> bulkReplaceOperations = new ArrayList<>()
         for (AnnotationUpdateModel annotationUpdateModel : annotationUpdateModelList) {
             Document originalAnnotDoc = annotationUpdateModel.getOrginalAnnotationDocument()
             Document originalVariant = variantsIdsInDBMap.get(annotationUpdateModel.getVariantId())
 
             Document fieldsToUpdate = new Document()
+            boolean shardKeyAffected = false
 
             // check for chromosome mismatch
             if (!annotationUpdateModel.getChromosome().equals(annotationUpdateModel.getChromosomeFromChrField())
                     && !alreadyUpdatedChrAnnotationIds.contains(annotationUpdateModel.getAnnotationId())) {
                 fieldsToUpdate.put("chr", annotationUpdateModel.getChromosome())
+                shardKeyAffected = true
             }
 
             if (originalVariant != null) {
+                long orgVariantStart = AnnotationUpdateModel.getLongValue(originalVariant, "start")
+                long orgVariantEnd = AnnotationUpdateModel.getLongValue(originalVariant, "end")
                 // check for start mismatch
-                if (!originalVariant.get("start").equals(annotationUpdateModel.getStart())) {
+                if (!orgVariantStart.equals(annotationUpdateModel.getStart())) {
                     fieldsToUpdate.put("start", originalVariant.get("start"))
+                    shardKeyAffected = true
                 }
                 // check for end mismatch
-                if (!originalVariant.get("end").equals(annotationUpdateModel.getEnd())) {
+                if (!orgVariantEnd.equals(annotationUpdateModel.getEnd())) {
                     fieldsToUpdate.put("end", originalVariant.get("end"))
                 }
             }
 
             if (!fieldsToUpdate.isEmpty()) {
-                Document update = new Document('$set', fieldsToUpdate)
-                bulkUpdateOperations.add(new UpdateOneModel<>(
-                        Filters.and(
-                                Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
-                                Filters.eq("chr", originalAnnotDoc.get("chr")),
-                                Filters.eq("start", originalAnnotDoc.get("start"))
-                        ),
-                        update
-                ))
+                if (shardKeyAffected) {
+                    // Build a full replacement document to avoid cross-shard transaction
+                    Document replacementDoc = new Document(originalAnnotDoc)
+                    fieldsToUpdate.each { k, v -> replacementDoc.put(k, v) }
+                    bulkReplaceOperations.add(new ReplaceOneModel<>(
+                            Filters.and(
+                                    Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
+                                    Filters.eq("chr", originalAnnotDoc.get("chr")),
+                                    Filters.eq("start", originalAnnotDoc.get("start"))
+                            ),
+                            replacementDoc
+                    ))
+                } else {
+                    // Only non-shard-key fields (e.g. just end) — plain update is safe
+                    Document update = new Document('$set', fieldsToUpdate)
+                    bulkUpdateOperations.add(new UpdateOneModel<>(
+                            Filters.and(
+                                    Filters.eq("_id", annotationUpdateModel.getAnnotationId()),
+                                    Filters.eq("chr", originalAnnotDoc.get("chr")),
+                                    Filters.eq("start", originalAnnotDoc.get("start"))
+                            ),
+                            update
+                    ))
+                }
+            }
+        }
+
+        if (!bulkReplaceOperations.isEmpty()) {
+            logger.info("Number of documents to be replaced due to shard-key field mismatch (chr/start): {}", bulkReplaceOperations.size())
+            // Cannot use replaceOne when shard key values change — MongoDB will attempt a
+            // cross-shard transaction which fails on replica sets with arbiters.
+            // Use delete + insert instead (same pattern as the INSDC chromosome section above).
+            for (WriteModel<Document> op : bulkReplaceOperations) {
+                ReplaceOneModel<Document> replaceOp = (ReplaceOneModel<Document>) op
+                Document replacementDoc = replaceOp.getReplacement()
+                String docId = replacementDoc.get("_id") as String
+
+                try {
+                    mongoTemplate.remove(Query.query(Criteria.where("_id").is(docId)), ANNOTATIONS_COLLECTION)
+                    mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).insertOne(replacementDoc)
+                } catch (com.mongodb.MongoWriteException e) {
+                    if (e.getCode() == 11000) {
+                        logger.error("Duplicate key on re-insert after delete for annotation id {}. Exception: {}",
+                                docId, e.getMessage())
+                    } else {
+                        logger.error("Failed to replace annotation document with id {}. Exception: {}",
+                                docId, e.getMessage())
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to replace annotation document with id {}. Exception: {}",
+                            docId, e.getMessage())
+                }
             }
         }
 
         if (!bulkUpdateOperations.isEmpty()) {
-            mongoTemplate.getCollection(ANNOTATIONS_COLLECTION).bulkWrite(bulkUpdateOperations,
-                    new BulkWriteOptions().ordered(false))
+            logger.info("Number of documents to be updated due to non-shard-key field mismatch (end): {}", bulkUpdateOperations.size())
+            for (WriteModel<Document> op : bulkUpdateOperations) {
+                mongoTemplate.getCollection(ANNOTATIONS_COLLECTION)
+                        .bulkWrite([op], new BulkWriteOptions().ordered(false))
+            }
         }
     }
 
@@ -347,8 +391,8 @@ class AnnotationUpdateModel {
     String chromosome
     String variantId
     String insdcChromosome
-    int start
-    int end
+    long start
+    long end
 
     AnnotationUpdateModel(Document annotationDocument) {
         this.orginalAnnotationDocument = annotationDocument
@@ -357,8 +401,8 @@ class AnnotationUpdateModel {
         this.chromosome = this.getChromosomeFromAnnotationId(this.annotationId)
         this.variantId = this.getVariantIdFromAnnotationId(this.annotationId)
         this.insdcChromosome = null
-        this.start = annotationDocument.getInteger("start")
-        this.end = annotationDocument.getInteger("end")
+        this.start = getLongValue(annotationDocument, "start")
+        this.end = getLongValue(annotationDocument, "end")
     }
 
     private String getChromosomeFromAnnotationId(String annotationId) {
@@ -397,15 +441,22 @@ class AnnotationUpdateModel {
         return insdcChromosome
     }
 
-    int getStart() {
+    long getStart() {
         return start
     }
 
-    int getEnd() {
+    long getEnd() {
         return end
     }
 
     void setInsdcChromosome(String insdcChromosome) {
         this.insdcChromosome = insdcChromosome
+    }
+
+    static long getLongValue(Document doc, String key) {
+        def value = doc.get(key)
+        if (value instanceof Long) return value as Long
+        if (value instanceof Integer) return (value as Integer).toLong()
+        throw new IllegalArgumentException("Unexpected type for field '${key}': ${value?.class}")
     }
 }
