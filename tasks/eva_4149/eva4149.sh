@@ -11,35 +11,38 @@
 #SBATCH -J "test_val"   # job name
 #SBATCH -o "test_val.out"   # job output file
 #SBATCH -e "test_val.err"   # job error file
-
+export PYTHONDONTWRITEBYTECODE=1
 set -euo pipefail
 # ==========================================
 # Configuration - user input - check these are correct
 # ==========================================
 # 1. create the EVA task dir
 # 2. add the data_dir, tests_dir and TEST.config to that directory
-# 3. double check the values below particularly: study_accession,  assembly names, validation_tasks and run_submit
-PATH_TO_EVA="/nfs/production/keane/eva"
-ASSEMBLY_NAMES=("GRCh38" "GRCh37")
-TASK_ID="EVA4149"
-STUDY_ACCESSION="estd1"
+# 3. double check the values in the pipeline.env
 
-BASE_DIR="${PATH_TO_EVA}/tasks/${TASK_ID}"
+STUDY_ACCESSION="${1:-}"
 
-INPUT_DIR="${BASE_DIR}/data_dir"
-TEST_DIR="${BASE_DIR}/tests"
-CONFIG_FILE="${BASE_DIR}/TEST.config"
+BASE_DIR="$(pwd)"
 
-CONVERT_GVF_TO_VCF_DIR="${PATH_TO_EVA}/software/convertGVFtoVCF/development_deployment/main"
-EVA_SUB_CLI_DIR="${PATH_TO_EVA}/software/eva-sub-cli/production_deployment/production"
-VALIDATION_TASKS=(metadata_check vcf_check) #(choose from 'vcf_check', 'assembly_check', 'metadata_check', 'sample_check')
-RUN_SUBMIT=false
 
-CURRENT_DATE=$(date +'%d%b')
+PIPELINE_PATH="${BASE_DIR}/pipeline.env"
+if [[ -f "${PIPELINE_PATH}" ]]; then
+    source "${PIPELINE_PATH}"
+else
+    echo "Error: Configuration file missing at ${PIPELINE_PATH}" >&2
+    exit 1
+fi
+
 # ==========================================
 # Setup and pre-flight checks
 # ==========================================
-OUTPUT_DIR="${BASE_DIR}/output"
+INPUT_DIR="${BASE_DIR}/data_dir"
+TEST_DIR="${BASE_DIR}/tests"
+CONFIG_FILE="${BASE_DIR}/TEST.config"
+OUTPUT_DIR="${OUTPUT_DIR:-${BASE_DIR}/output}"
+SUBMISSION_DIR="${OUTPUT_DIR}/submission"
+mkdir -p "${OUTPUT_DIR}"
+
 
 SITE_PACKAGES="${CONVERT_GVF_TO_VCF_DIR}/lib/python3.11/site-packages"
 FINDER_SCRIPT="${CONVERT_GVF_TO_VCF_DIR}/bin/gvf_file_finder.py"
@@ -88,14 +91,35 @@ cp -r "$TEST_DIR" "$SITE_PACKAGES"
 # ==========================================
 # STEP 1: Convert GVF to VCF
 # ==========================================
+# Gather study accession folderes
+if [ -n "${STUDY_ACCESSION}" ]; then
+    # User gave a specific study accession as a positional argumnet
+    STUDY_FOLDERS=$(find "${INPUT_DIR}" -maxdepth 1 -type d -name "${STUDY_ACCESSION}*")
+else
+    # No argument given, look for all study accessions in the input
+    STUDY_FOLDERS=$(find "${INPUT_DIR}" -maxdepth 1 -type d -name "[en]std*")
+fi
+
+if [ -z "${STUDY_FOLDERS}" ]; then
+    ERROR_MSG="Error: Study accession directory not found in ${INPUT_DIR}" >&2
+    exit 1
+fi
+
 echo "Converting GVFs, obtaining metadata and summary reports..."
 
-"$FINDER_SCRIPT" \
-    --search_dir "${INPUT_DIR}" \
-    --log "${BASE_DIR}/hpc.log" \
-    --output "${OUTPUT_DIR}" \
-    --config "${CONFIG_FILE}" \
-    --study_accession "${STUDY_ACCESSION}"
+FINDER_ARGS=(
+    --search_dir "${INPUT_DIR}"
+    --log "${BASE_DIR}/hpc.log"
+    --output "${OUTPUT_DIR}"
+    --config "${CONFIG_FILE}"
+)
+
+if [ -n "${STUDY_ACCESSION}" ]; then
+    FINDER_ARGS+=(--study_accession "${STUDY_ACCESSION}")
+fi
+
+# Convert the GVFs to VCFs
+"$FINDER_SCRIPT" "${FINDER_ARGS[@]}"
 
 shopt -s nullglob
 
@@ -104,99 +128,72 @@ export LD_PRELOAD=/usr/lib64/libffi.so.8
 
 SCRIPT_FAILED=false
 
-for ASSEMBLY_NAME in "${ASSEMBLY_NAMES[@]}"; do
-    ASSEMBLY_DIR="${OUTPUT_DIR}/assembly_${ASSEMBLY_NAME}_${CURRENT_DATE}"
-    # ==========================================
-	# STEP 2: Organise files
-	# ==========================================
-    echo "Processing assembly: ${ASSEMBLY_NAME}..."
-	
-	echo "Creating assembly directory..."
+shopt -s nullglob
 
-	mkdir -p "$ASSEMBLY_DIR"
+for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 
-	echo "Copying VCF and JSON results..."
-	# Copy both file types to the Base Directory
-	#cp "${OUTPUT_DIR}"/*/*"${ASSEMBLY_NAME}".{Remapped.vcf,eva.json} "$BASE_DIR"
+    STUDY_NAME=$(basename "${STUDY_FOLDER}") # estd1_Redon_et_al_2006
 
-	# Copy both file types to the Assembly Directory
-	cp "${OUTPUT_DIR}"/*/*"${ASSEMBLY_NAME}".{Remapped.vcf,eva.json} "$ASSEMBLY_DIR"
+    STUDY_ACCESSION=$(echo "${STUDY_NAME}" | cut -d'_' -f1) # estd1
 
-	# ==========================================
-	# STEP 3: Check the files
-	# ==========================================
-	echo "Detecting the output files have been generated..."
+	echo "Processing accession: ${STUDY_ACCESSION}..."
 
-	# Find the matching files inside the assembly directory (submission directory)
-	JSON_FILES=("${ASSEMBLY_DIR}"/*"${ASSEMBLY_NAME}".eva.json)
-	VCF_FILES=("${ASSEMBLY_DIR}"/*"${ASSEMBLY_NAME}".Remapped.vcf)
+    shopt -s nullglob
+    GVF_FILES=( "${STUDY_FOLDER}/gvf"/*Remapped.gvf "${STUDY_FOLDER}/gvf"/*Submitted.gvf )
+    shopt -u nullglob
 
-    # Check files are present
-    if [ ${#JSON_FILES[@]} -eq 0 ] || [ ! -f "${JSON_FILES[0]}" ]; then
-        echo "ERROR: Expected metadata JSON file not found in ${ASSEMBLY_DIR}" >&2
-        SCRIPT_FAILED=true
-        continue 
-    fi
+    for GVF_FILE in "${GVF_FILES[@]}"; do
 
-    if [ ${#VCF_FILES[@]} -eq 0 ] || [ ! -f "${VCF_FILES[0]}" ]; then
-        echo "ERROR: Expected VCF file not found in ${ASSEMBLY_DIR}" >&2
-        SCRIPT_FAILED=true
-        continue 
-    fi
+        GVF_FILENAME=$(basename "${GVF_FILE}")
 
-    METADATA_JSON="${JSON_FILES[0]}"
-    VCF_FILE="${VCF_FILES[0]}"
-    echo "Found meta file: ${METADATA_JSON}"
-    echo "Found VCF  file: ${VCF_FILE}"
+        SUBMIT_STUDY_DIR="${SUBMISSION_DIR}/${STUDY_NAME}"
 
-    echo "Symlinking the VCF file..."
-    
-    ln -sf "${ASSEMBLY_DIR}/estd1_Redon_et_al_2006.2014-04-01.${ASSEMBLY_NAME}.Remapped.vcf" "${BASE_DIR}/estd1_Redon_et_al_2006.2014-04-01.${ASSEMBLY_NAME}.Remapped.vcf"
-
-	# ==========================================
-	# STEP 4: Validate with eva-sub-cli
-	# ==========================================
-	echo "Running validation with eva-sub-cli..."
-
-	# set the arguents
-	VALIDATE_ARGS=(
-	    --submission_dir "$ASSEMBLY_DIR"
-	    --metadata_json "$METADATA_JSON"
-	    --tasks validate
-	)
-
-	# add validation tasks if added
-	if [ ${#VALIDATION_TASKS[@]} -gt 0 ]; then
-	    VALIDATE_ARGS+=(--validation_tasks "${VALIDATION_TASKS[@]}")
-	fi
-
-	# run validation
-	if eva-sub-cli.py "${VALIDATE_ARGS[@]}"; then
-	    
-	    echo "Validation passed successfully!"
-
-	    # ==========================================
-		# STEP 5: Submit with eva-sub-cli: if flag is set and validation passes	
 		# ==========================================
-	    if [ "${RUN_SUBMIT}" = true ]; then
-	        echo "Submission flag is enabled. Proceeding to official submission..."
-	        
-	        eva-sub-cli.py \
-	            --submission_dir "$ASSEMBLY_DIR" \
-	            --metadata_json "$METADATA_JSON" \
-	            --tasks submit \
-	            --username "${WEBIN_USER}" \
-	            --password "${WEBIN_PASS}"
-	    else
-	        echo "NOTE: Submission flag is set to false. Skipping submission step."
-	    fi
-	else
-	    echo "ERROR: Validation failed. Submission aborted." >&2
-        SCRIPT_FAILED=true
-        continue
-	fi
-done
+		# STEP 2: Validate with eva-sub-cli
+		# ==========================================
+		echo "Running validation with eva-sub-cli..."
+		echo "Submission dir ${SUBMIT_STUDY_DIR}"
+		METADATA_JSON="${SUBMIT_STUDY_DIR}/eva_submission_${STUDY_ACCESSION}.json"
 
+		# set the arguents
+		VALIDATE_ARGS=(
+		    --submission_dir "$SUBMIT_STUDY_DIR"
+		    --metadata_json "$METADATA_JSON"
+		    --tasks validate
+		)
+
+		# add validation tasks if added
+		if [ ${#VALIDATION_TASKS[@]} -gt 0 ]; then
+		    VALIDATE_ARGS+=(--validation_tasks "${VALIDATION_TASKS[@]}")
+		fi
+
+		# run validation
+		if eva-sub-cli.py "${VALIDATE_ARGS[@]}"; then
+
+		    echo "Validation passed successfully!"
+
+		    # ==========================================
+			# STEP 3: Submit with eva-sub-cli: if flag is set and validation passes
+			# ==========================================
+		    if [ "${RUN_SUBMIT}" = true ]; then
+		        echo "Submission flag is enabled. Proceeding to official submission..."
+
+		        eva-sub-cli.py \
+		            --submission_dir "${SUBMIT_STUDY_DIR}" \
+		            --metadata_json "$METADATA_JSON" \
+		            --tasks submit \
+		            --username "${WEBIN_USER}" \
+		            --password "${WEBIN_PASS}"
+		    else
+		        echo "NOTE: Submission flag is set to false. Skipping submission step."
+		    fi
+		else
+		    echo "ERROR: Validation failed. Submission aborted." >&2
+	        SCRIPT_FAILED=true
+	        continue
+	fi
+	done
+done
 shopt -u nullglob
 
 unset WEBIN_USER WEBIN_PASS
