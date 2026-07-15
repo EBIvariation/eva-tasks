@@ -168,8 +168,10 @@ for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 		fi
 
 		# run validation
-		if eva-sub-cli.py "${VALIDATE_ARGS[@]}"; then
+		OUTPUT=$(eva-sub-cli.py "${VALIDATE_ARGS[@]}" 2>&1)
+		LOG_FILE="${SUBMIT_STUDY_DIR}/validation_output/eva_submission.log"
 
+		if [ -f "$LOG_FILE" ] && ! grep -Fq "Validation result: FAILURE" "$LOG_FILE"; then
 		    echo "Validation passed successfully!"
 
 		    # ==========================================
@@ -188,10 +190,11 @@ for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 		        echo "NOTE: Submission flag is set to false. Skipping submission step."
 		    fi
 		else
+			echo "Validation failed!"
 		    echo "ERROR: Validation failed. Submission aborted." >&2
-	        SCRIPT_FAILED=true
-	        continue
-	fi
+	    	SCRIPT_FAILED=true
+	    	continue
+	    fi
 	done
 done
 shopt -u nullglob
