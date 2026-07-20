@@ -8,9 +8,9 @@
 #SBATCH --cpus-per-task=1   # number of CPUs Per Task i.e if your code is multi-threaded
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --mem=8G   # memory per node
-#SBATCH -J "test_val"   # job name
-#SBATCH -o "test_val.out"   # job output file
-#SBATCH -e "test_val.err"   # job error file
+#SBATCH -J "pr1"   # job name
+#SBATCH -o "pr1.out"   # job output file
+#SBATCH -e "pr1.err"   # job error file
 export PYTHONDONTWRITEBYTECODE=1
 set -euo pipefail
 # ==========================================
@@ -27,7 +27,9 @@ BASE_DIR="$(pwd)"
 
 PIPELINE_PATH="${BASE_DIR}/pipeline.env"
 if [[ -f "${PIPELINE_PATH}" ]]; then
+	set -a
     source "${PIPELINE_PATH}"
+    set +a
 else
     echo "Error: Configuration file missing at ${PIPELINE_PATH}" >&2
     exit 1
@@ -37,7 +39,7 @@ fi
 # Setup and pre-flight checks
 # ==========================================
 INPUT_DIR="${BASE_DIR}/data_dir"
-TEST_DIR="${BASE_DIR}/tests"
+#TEST_DIR="${BASE_DIR}/tests"
 CONFIG_FILE="${BASE_DIR}/TEST.config"
 OUTPUT_DIR="${OUTPUT_DIR:-${BASE_DIR}/output}"
 SUBMISSION_DIR="${OUTPUT_DIR}/submission"
@@ -49,12 +51,6 @@ FINDER_SCRIPT="${CONVERT_GVF_TO_VCF_DIR}/bin/gvf_file_finder.py"
 ENV_ACTIVATE="${EVA_SUB_CLI_DIR}/bin/activate"
 
 echo "Verifying input files and directories..."
-
-# Check tests directory is present (this contains the assembly FASTA)
-if [ ! -d "${TEST_DIR}" ]; then
-    echo "ERROR: directory not found - ${TEST_DIR}" >&2
-    exit 1
-fi
 
 # Check data directory is present (this mimics the DGVa FTP)
 if [ ! -d "${INPUT_DIR}" ]; then
@@ -86,8 +82,6 @@ if [ -z "${WEBIN_USER}" ] || [ -z "${WEBIN_PASS}" ]; then
     exit 1
 fi
 
-echo "Installing assembly tests to site-packages..."
-cp -r "$TEST_DIR" "$SITE_PACKAGES"
 # ==========================================
 # STEP 1: Convert GVF to VCF
 # ==========================================
@@ -168,10 +162,8 @@ for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 		fi
 
 		# run validation
-		OUTPUT=$(eva-sub-cli.py "${VALIDATE_ARGS[@]}" 2>&1)
-		LOG_FILE="${SUBMIT_STUDY_DIR}/validation_output/eva_submission.log"
-
-		if [ -f "$LOG_FILE" ] && ! grep -Fq "Validation result: FAILURE" "$LOG_FILE"; then
+		echo "Running validation..."
+		if eva-sub-cli.py "${VALIDATE_ARGS[@]}"; then
 		    echo "Validation passed successfully!"
 
 		    # ==========================================
