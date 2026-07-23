@@ -8,16 +8,16 @@
 #SBATCH --cpus-per-task=1   # number of CPUs Per Task i.e if your code is multi-threaded
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --mem=8G   # memory per node
-#SBATCH -J "pr1"   # job name
-#SBATCH -o "pr1.out"   # job output file
-#SBATCH -e "pr1.err"   # job error file
+#SBATCH -J "assembly"   # job name
+#SBATCH -o "assembly.out"   # job output file
+#SBATCH -e "assembly.err"   # job error file
 export PYTHONDONTWRITEBYTECODE=1
 set -euo pipefail
 # ==========================================
 # Configuration - user input - check these are correct
 # ==========================================
 # 1. create the EVA task dir
-# 2. add the data_dir, tests_dir and TEST.config to that directory
+# 2. add the data_dir and TEST.config to that directory
 # 3. double check the values in the pipeline.env
 
 STUDY_ACCESSION="${1:-}"
@@ -39,17 +39,19 @@ fi
 # Setup and pre-flight checks
 # ==========================================
 INPUT_DIR="${BASE_DIR}/data_dir"
-#TEST_DIR="${BASE_DIR}/tests"
 CONFIG_FILE="${BASE_DIR}/TEST.config"
 OUTPUT_DIR="${OUTPUT_DIR:-${BASE_DIR}/output}"
 SUBMISSION_DIR="${OUTPUT_DIR}/submission"
 mkdir -p "${OUTPUT_DIR}"
+# for assembly conversion
+REFSEQ_DIR="${OUTPUT_DIR}/clean_reference_sequences"
+mkdir -p "${REFSEQ_DIR}"
 
-
-SITE_PACKAGES="${CONVERT_GVF_TO_VCF_DIR}/lib/python3.11/site-packages"
 FINDER_SCRIPT="${CONVERT_GVF_TO_VCF_DIR}/bin/gvf_file_finder.py"
-ENV_ACTIVATE="${EVA_SUB_CLI_DIR}/bin/activate"
-
+EVASUBCLI_ACTIVATE="${EVA_SUB_CLI_DIR}/bin/activate"
+CONVERT_ACTIVATE="${CONVERT_GVF_TO_VCF_DIR}/bin/activate"
+EVASUBCLI_PYTHON="${EVA_SUB_CLI_DIR}/bin/python3"
+CONVERT_PYTHON="${CONVERT_GVF_TO_VCF_DIR}/bin/python3"
 echo "Verifying input files and directories..."
 
 # Check data directory is present (this mimics the DGVa FTP)
@@ -117,7 +119,8 @@ fi
 
 shopt -s nullglob
 
-source "$ENV_ACTIVATE"
+source "$EVASUBCLI_ACTIVATE"
+
 export LD_PRELOAD=/usr/lib64/libffi.so.8
 
 SCRIPT_FAILED=false
@@ -138,8 +141,38 @@ for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 
     for GVF_FILE in "${GVF_FILES[@]}"; do
 
-        GVF_FILENAME=$(basename "${GVF_FILE}")
 
+        GVF_FILENAME=$(basename "${GVF_FILE}")
+        # ==========================================
+		# STEP 1a: Begin the assembly conversion - chromosome naming convention
+		# ==========================================
+		# find the assembly name from the GVF file
+		deactivate
+		source "$CONVERT_ACTIVATE"
+        if [[ "$GVF_FILENAME" == *".p13."* ]]; then
+		    ASSEMBLY=$(echo "$GVF_FILENAME" | cut -d'.' -f3,4)
+		else
+		    ASSEMBLY=$(echo "$GVF_FILENAME" | cut -d'.' -f3)
+		fi
+		CONVERT_CONFIG_PATH=$("${CONVERT_PYTHON}" -c "import convert_gvf_to_vcf; import os; print(os.path.join(os.path.dirname(convert_gvf_to_vcf.__file__), 'etc', 'config.yaml'))")
+
+		ASSEMBLY_FASTA=$("${CONVERT_PYTHON}" -c "import yaml, os; print(os.path.expandvars(yaml.safe_load(open('$CONVERT_CONFIG_PATH'))['assembly_paths']['$ASSEMBLY']))")
+		ASSEMBLY_REPORT=$("${CONVERT_PYTHON}" -c "import yaml, os; print(os.path.expandvars(yaml.safe_load(open('$CONVERT_CONFIG_PATH'))['assembly_report_paths']['$ASSEMBLY']))")
+		ASSEMBLY_ACCESSION=$("${CONVERT_PYTHON}" -c "import yaml, os; print(os.path.expandvars(yaml.safe_load(open('$CONVERT_CONFIG_PATH'))['assembly_accession']['$ASSEMBLY']))")
+		# decide on the output directory = refseq_dir
+		mkdir -p "${REFSEQ_DIR}/${ASSEMBLY_ACCESSION}"
+		OUTPUT_FASTA="${REFSEQ_DIR}/${ASSEMBLY_ACCESSION}/${ASSEMBLY_ACCESSION}.fa"
+
+		# convert that with
+		$PYTHON_EXEC -m eva_submission.steps.rename_contigs_from_insdc_in_assembly \
+		    --get_contig_from_vcf data \
+		    --assembly_accession "$ASSEMBLY_ACCESSION" \
+		    --custom_fasta "$OUTPUT_FASTA" \
+		    --assembly_fasta "$ASSEMBLY_FASTA" \
+		    --assembly_report "$ASSEMBLY_REPORT" \
+		    --vcf_files "$GVF_FILE"
+		deactivate
+		source "$EVASUBCLI_ACTIVATE"
         SUBMIT_STUDY_DIR="${SUBMISSION_DIR}/${STUDY_NAME}"
 
 		# ==========================================
@@ -164,7 +197,7 @@ for STUDY_FOLDER in ${STUDY_FOLDERS}; do  # full path
 		# run validation
 		echo "Running validation..."
 		if eva-sub-cli.py "${VALIDATE_ARGS[@]}"; then
-		    echo "Validation passed successfully!"
+		    echo "Validation complete!"
 
 		    # ==========================================
 			# STEP 3: Submit with eva-sub-cli: if flag is set and validation passes
