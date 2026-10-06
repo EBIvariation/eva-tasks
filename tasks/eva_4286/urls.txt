@@ -1,0 +1,31 @@
+# One request per line: METHOD PATH [BODY [AUTH]], separated by whitespace. Lines starting with # are ignored.
+#   METHOD  HTTP verb (GET, PUT, ...)
+#   PATH    path including the optional query string
+#   BODY    optional request body sent as JSON. It cannot contain whitespace (use compact JSON). Use - for no body.
+#   AUTH    optional name of the basic auth credentials to use, defined as NAME=USER:PASSWORD in credentials.txt.
+#           credentials.txt is git-ignored: never write the credentials themselves in this file. e.g.
+# PUT /eva/webservices/some/path?param=value {"key":"value"} some_admin
+GET /eva/webservices/rest/v1/meta/studies/count
+GET /eva/webservices/rest/v1/genes/BRCA2/variants?species=ecaballus_20
+GET /eva/webservices/rest/v1/studies/ro-crate/PRJEB6450
+GET /eva/webservices/rest/v1/stats/submissions/count
+GET /eva/webservices/rest/v2/variants/13:32884647:T:C/annotations?species=hsapiens&assembly=grch37
+GET /eva/webservices/rest/v2/variants/CM000675.1:32884647:T:C/annotations?species=hsapiens&assembly=grch37&contigNamingConvention=INSDC
+GET /eva/webservices/count-stats/v1/count/accessioning_warehouse_ingestion?study=PRJEB114711
+POST /eva/webservices/count-stats/v1/count {"id":0,"process":"TEST","identifier":"ASSEMBLY_1","metric":"submitted_variants","count":0,"timestamp":"2026-10-01T15:33:23.174Z"} count-stats
+GET /dgva/webservices/rest/v1/meta/studies/all
+GET /dgva/webservices/rest/v1/studies/nstd92/summary
+GET /eva/webservices/identifiers/v1/submitted-variants/5000207763
+GET /eva/webservices/identifiers/v1/submitted-variants/5000207763?contigNamingConvention=UCSC
+GET /eva/webservices/identifiers/v1/clustered-variants/3527583053/history
+GET /eva/webservices/identifiers/v1/clustered-variants/beacon/query?assemblyId=GCA_000002315.3&referenceName=10&start=2495498&variantType=SNV
+GET /eva/webservices/vcf-dumper/v1/variants/PRJEB9799?format=VCF&referenceName=CM000377.2&species=ecaballus_20&start=3000000&end=3100000
+GET /eva/webservices/contig-alias/v1/assemblies/GCA_000001515.4
+GET /eva/webservices/contig-alias/v1/assemblies/GCA_000001515.4/chromosomes
+PUT /eva/webservices/contig-alias/v1/admin/assemblies/GCA_002743455.1 - contig-alias
+PUT /eva/webservices/contig-alias/v1/admin/assemblies/GCA_017639285.1 - contig-alias
+GET /eva/webservices/seqcol/list/collection
+PUT /eva/webservices/seqcol/admin/seqcols/GCA_000146045.2 - seqcol
+GET /eva/webservices/submission-ws/v1/submission/e8c958e4-0129-414b-92a4-606fd9724e2b/status
+GET /eva/webservices/submission-ws/v1/admin/submissions/status/UPLOADED - submission-ws
+PUT /eva/webservices/submission-ws/v1/submission/e8c958e4-0129-414b-92a4-606fd9724e2b/status - submission-ws

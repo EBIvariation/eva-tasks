@@ -1,0 +1,10 @@
+# URL path prefix	Kubernetes namespace of the webservice serving it
+/eva/webservices/rest	eva-server
+/dgva/webservices/rest	dgva-server
+/eva/webservices/identifiers	eva-accession-ws
+/eva/webservices/contig-alias	contig-alias
+/eva/webservices/count-stats	count-stats
+/eva/webservices/release	eva-release
+/eva/webservices/seqcol	eva-seqcol
+/eva/webservices/submission-ws	eva-submission-ws
+/eva/webservices/vcf-dumper	vcf-dumper-ws
