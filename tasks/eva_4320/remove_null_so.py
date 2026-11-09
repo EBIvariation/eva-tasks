@@ -35,9 +35,6 @@ def clean_collection(collection, batch_size, apply):
     finally:
         cursor.close()
 
-    remaining = collection.count_documents(NULL_SO_FILTER)
-    logger.info("%s.%s: modified %d documents, %d still contain nulls",
-                collection.database.name, collection.name, fixed, remaining)
     return fixed
 
 
